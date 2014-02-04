@@ -165,6 +165,7 @@ count+=tmp;
                   }while(0);
    
                if(c->error==1){ c->type=0;
+                     c->msg.msg_iovlen=2;
                      c->iov[1].iov_base=error_message;
                     c->iov[1].iov_len=strlen(error_message);
                       c->buf_size=c->iov[1].iov_len;
