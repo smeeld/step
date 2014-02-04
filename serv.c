@@ -15,7 +15,6 @@
 #include <time.h>
 #include <signal.h>
 #include <errno.h>
-#include <search.h>
 
 char* path="/var/www/html%s";
 char* header="HTTP/1.1 200 OK\r\n"
@@ -225,8 +224,6 @@ pid_t pid;
 int i;
 cache_count=0;
 conn_count=0;
-int flags=0;
-int conn_count=0;
 char strpath[strlen(path)];
 str=strpath;
 struct connection* conn2;
@@ -242,7 +239,7 @@ int length=sizeof(struct sockaddr);
       .sin_addr.s_addr=INADDR_ANY,
        .sin_port=htons(80)
        };
-int done=1;
+
   if((p=getpwnam("g"))==NULL){  exit(-1); };
 if((sock=socket(AF_INET,SOCK_STREAM,0))<0){  exit(-1);};
   
