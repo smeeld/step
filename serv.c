@@ -16,16 +16,25 @@
 #include <signal.h>
 #include <errno.h>
 
-char* path="/var/www/html%s";
-char* header="HTTP/1.1 200 OK\r\n"
+ char* header="HTTP/1.1 200 OK\r\n"
      "Date: xxxxxxxxxxxxxxxxxxxxxxxx GMT\r\n"
      "Server: MATRIX\r\n"
      "Content-Type: %s; charset=utf-8\r\n"
      "Content-Length: %d \r\n"
      "Connection: keep-alive\r\n\r\n";
-  char* error_message="<html><dody>NO SUCH FILE</body></html>";
-  char* mime[]={"text/html", "image/jpeg"};
-int http_version;
+char* path="/var/www/html%s";
+
+ char* error_message="<html><dody>NO SUCH FILE</body></html>";
+struct head_inf{
+  int path_len;
+  int header_len;
+  int error_message_len;
+  }head_inf_t, *head_p;
+void meta_init(struct head_inf* m){
+    m->header_len=strlen(header)+82;
+    m->error_message_len=strlen(error_message);
+   m->path_len=strlen(path);
+    };
 
 char* date;
 time_t tm_t;
@@ -59,6 +68,10 @@ void conn_close(struct connection* c);
 static int efd;
 static int current_number;
   struct epoll_event *events;
+void http_error(struct connection* c){
+     write(c->fd,"HTTP/1.1 400 Bad Request",strlen("HTTP/1.1 400 Bad Request"));
+        shutdown(c->fd,SHUT_RDWR);
+          };
 int check_cache(char* s,struct cache** ch){
 int i;
  
@@ -112,64 +125,80 @@ count+=tmp;
 };
  void read_s(struct connection* c){
   char* buf;
-  char* sts;
+   char* sts;
     int i=0;
       struct stat st;
- 
            errno=0;
       do{ i=read(c->fd, c->buf_get, 4096); 
       
        if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; }; shutdown(c->fd,SHUT_RDWR); return; };  
              break; }while(1);
          
-        if(strncmp(c->buf_get,"GET",3)==0)
-       {
-         sts=strstr(c->buf_get,"HTTP"); 
+        if((sts=strstr(c->buf_get,"HTTP"))==NULL){ http_error(c); return; };  
+   
+        if(strncmp(c->buf_get,"GET",3)==0){ 
+         
         c->buf_get[sts-c->buf_get-1]='\0';
           
-           sprintf(str,path, c->buf_get+4);
+          i=strlen(c->buf_get)-4;
+           
+           char file_path[head_p->path_len+i];
+            
+            char head[head_p->header_len];
+           
+           sprintf(file_path, path, c->buf_get+4);
 
            do{
-              if(strstr(str,".html")==NULL){ 
-                    if((c->file_fd=open(str,O_RDONLY))>0){
+                if(stat(file_path,&st)<0){ c->error=1; break; };
+                   
+                     if(st.st_size>9092){  
+                   
+                   if((c->file_fd=open(file_path,O_RDONLY))<0){ c->error=1; break; };
                  c->error=0;
-                     c->type=1; 
-            fstat(c->file_fd,&st); 
+                     c->type=1;  
                 c->buf_size=st.st_size; 
                  c->size_tr=0;
-                }else{c->error=1; };
-                  break;
-               };
-                 struct cache* ch;
+                   break;
+                
+                 }else{
+                 
+                struct cache* ch;
                   
-              if(check_cache(str, &ch)==0){ 
+              if(check_cache(file_path, &ch)<0){ c->error=1; break; }; 
                   c->error=0;
                      c->type=0;
                       c->buf_send=ch->buf;
                         c->buf_size=ch->size;
                         c->size_tr=0;     
-                       }else{c->error=1; };
                     break;
-                  }while(0);
-   
+                        };
+                       }while(0);
+
                if(c->error==1){
                      c->buf_send=error_message;
-                    c->buf_size=strlen(error_message);
+                    c->buf_size=head_p->error_message_len;
                       c->type=0;
-                     }; 
+                     };
+                
             time(&tm_t);
              date=asctime(localtime(&tm_t));
-            sprintf(string,header,mime[c->type],c->buf_size);
-         memcpy(string+23,date,24);
-               do{ errno=0; i=write(c->fd,string,strlen(string));
+            sprintf(head, header, "*/*", c->buf_size);
+         memcpy(head+23,date,24);
+               
+               do{ errno=0; i=write(c->fd, head , strlen(head));
           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
               shutdown(c->fd,SHUT_RDWR); return; }; 
                 break; }while(1);
+           
               write_s(c);
-               return;
-            }
-        write(c->fd,"HTTP/1.1 400 Bad Request",strlen("HTTP/1.1 400 Bad Request"));
+               
+                return;
+              };
+
+         http_error(c);
+ 
        };
+
   void write_s(struct connection* c){
      int i;
      
@@ -214,8 +243,7 @@ pid_t pid;
 int i;
 cache_count=0;
 conn_count=0;
-char strpath[strlen(path)];
-str=strpath;
+
 struct connection* conn2;
  struct passwd* p;
  signal(SIGINT, sig_hand );
@@ -259,6 +287,8 @@ dup(std);
 dup(std);
  setuid(p->pw_uid);
  setgid(p->pw_gid);
+   head_p=&head_inf_t;
+   meta_init(head_p);
 
     ( conn+sock )->fd=sock;
 if((efd=epoll_create(1024))<0){  exit(-1); };
