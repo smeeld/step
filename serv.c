@@ -46,12 +46,9 @@ struct connection
     int buf_size;
     int size_tr;
      char buf_get[995];
+     char* buf_send;
      int file_fd;
-     int file_sz;
      int error;
-     int flag;
-    struct msghdr msg;
-     struct iovec iov[2];
    };
  struct connection* conn;
 int sock;
@@ -118,15 +115,9 @@ count+=tmp;
   char* sts;
     int i=0;
       struct stat st;
-      c->msg.msg_name=NULL;
-                  c->msg.msg_namelen=0;
-                   c->msg.msg_iov=c->iov;
-                    c->msg.msg_iovlen=1;
-                    c->msg.msg_flags=0;
-                      c->iov[0].iov_base=&(c->buf_get);
-                       c->iov[0].iov_len=1024;
+ 
            errno=0;
-      do{ i=recvmsg(c->fd, &(c->msg),0); 
+      do{ i=read(c->fd, c->buf_get, 4096); 
       
        if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; }; shutdown(c->fd,SHUT_RDWR); return; };  
              break; }while(1);
@@ -137,16 +128,15 @@ count+=tmp;
         c->buf_get[sts-c->buf_get-1]='\0';
           
            sprintf(str,path, c->buf_get+4);
-            do{
+
+           do{
               if(strstr(str,".html")==NULL){ 
                     if((c->file_fd=open(str,O_RDONLY))>0){
                  c->error=0;
-                     c->type=1;
-                  c->msg.msg_iovlen=1; 
+                     c->type=1; 
             fstat(c->file_fd,&st); 
-                c->buf_size=st.st_size;
-                  c->file_sz=st.st_size; 
-                    c->size_tr=0;
+                c->buf_size=st.st_size; 
+                 c->size_tr=0;
                 }else{c->error=1; };
                   break;
                };
@@ -154,51 +144,50 @@ count+=tmp;
                   
               if(check_cache(str, &ch)==0){ 
                   c->error=0;
-                   c->type=0;
-                     c->msg.msg_iovlen=2;
-                      c->iov[1].iov_base=ch->buf;
-                       c->iov[1].iov_len=ch->size;
+                     c->type=0;
+                      c->buf_send=ch->buf;
                         c->buf_size=ch->size;
-                        c->size_tr=0;      
+                        c->size_tr=0;     
                        }else{c->error=1; };
                     break;
                   }while(0);
    
-               if(c->error==1){ c->type=0;
-                     c->msg.msg_iovlen=2;
-                     c->iov[1].iov_base=error_message;
-                    c->iov[1].iov_len=strlen(error_message);
-                      c->buf_size=c->iov[1].iov_len;
+               if(c->error==1){
+                     c->buf_send=error_message;
+                    c->buf_size=strlen(error_message);
+                      c->type=0;
                      }; 
             time(&tm_t);
              date=asctime(localtime(&tm_t));
             sprintf(string,header,mime[c->type],c->buf_size);
          memcpy(string+23,date,24);
-             c->iov[0].iov_base=string;
-              c->iov[0].iov_len=strlen(string);
-                c->buf_size+=c->iov[0].iov_len; 
-                 c->flag=0;  
-         write_s(c);
-           return;
-            };
+               do{ errno=0; i=write(c->fd,string,strlen(string));
+          if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
+              shutdown(c->fd,SHUT_RDWR); return; }; 
+                break; }while(1);
+              write_s(c);
+               return;
+            }
         write(c->fd,"HTTP/1.1 400 Bad Request",strlen("HTTP/1.1 400 Bad Request"));
        };
   void write_s(struct connection* c){
      int i;
-     if(c->flag==0){
-      do{ errno=0; i=sendmsg(c->fd,&(c->msg),0);
+     
+     if(c->type==0){
+      do{ errno=0; i=write(c->fd,c->buf_send+c->size_tr,c->buf_size-c->size_tr);
           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
               shutdown(c->fd,SHUT_RDWR); return; }; 
                 c->size_tr+=i;
-                if(c->type==1){ c->flag=1; }; break; }while(1);
+                 break; }while(1);
                   };
-    if(c->flag==1){ 
-        do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->file_sz);
+    if(c->type==1){ 
+        do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
               shutdown(c->fd,SHUT_RDWR); return; }; 
                 c->size_tr+=i; break;
                  }while(1);
                 };
+       
           if(c->size_tr==c->buf_size){ if(c->type==1){ close(c->file_fd); };
                shutdown(c->fd,SHUT_RDWR); }; 
     return;
@@ -233,7 +222,7 @@ struct connection* conn2;
  signal(SIGTERM, sig_hand );
  events=(struct epoll_event*)malloc(32000*sizeof(struct epoll_event));
  caches=(struct cache*)malloc(1024*sizeof(struct cache));
-  conn=(struct connection*)malloc(32000*sizeof(struct connection));
+  conn=(struct connection*)malloc(1024*sizeof(struct connection));
 int length=sizeof(struct sockaddr);
  struct sockaddr_in socket_s={ 
       .sin_family=AF_INET,
@@ -298,9 +287,13 @@ current_number=epoll_wait(efd,events,1024,-1);
 
            if(conn2->fd==sock){
                     if((s=accept(sock,(struct sockaddr*)&socket_s,&length))<0){  continue; };
-                    
-                       set_non_bl(s); 
-                           (conn+s)->fd=s;
+                     
+                      if(s>1024){
+                           close(s); continue;
+                                };
+                         
+                       set_non_bl(s);
+                           conn[s].fd=s;
                           
                            ev.data.ptr=(conn+s);
                            
