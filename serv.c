@@ -38,6 +38,8 @@ void meta_init(struct head_inf* m){
 
 char* date;
 time_t tm_t;
+char* str;
+char string[512];
 struct cache{
  char file[64];
   char* buf; 
@@ -100,12 +102,10 @@ struct connection* c;
  exit(0); };
 int cacher(char* s,struct cache* ch){
 int fd;
-int count;
+int count=0;
 int tmp;
 struct stat st;
-char t_buf[4096];
-  count=0; 
-  size_t Sz;
+char t_buf[4096]; 
 if((fd=open(s,O_RDONLY))<0){   return 1;};
   fstat(fd, &st);
 char* buf; if((buf=(char*)malloc(sizeof(char)*st.st_size))==NULL){ return 2; };
@@ -254,10 +254,6 @@ conn_count=0;
  struct passwd* p;
 struct connection* conn2;
 
-signal(SIGINT, sig_hand );
- signal(SIGTERM, sig_hand );
-
-
 struct sockaddr_in socket_s={ 
       .sin_family=AF_INET,
       .sin_addr.s_addr=INADDR_ANY,
@@ -274,12 +270,6 @@ if((sock=socket(AF_INET,SOCK_STREAM,0))<0){  exit(-1);};
   sock_opt(sock);
  set_non_bl(sock);
  listen(sock,1024);
- 
- if((efd=epoll_create(1024))<0){   sig_hand(0); exit(-1); };
- if((events=(struct epoll_event*)malloc(32000*sizeof(struct epoll_event)))==NULL){ sig_hand(0); exit(-1); }
- if((caches=(struct cache*)malloc(1024*sizeof(struct cache)))==NULL){ sig_hand(0); exit(-1); };
-  if((conn=(struct connection*)malloc(1024*sizeof(struct connection)))==NULL){ sig_hand(0); exit(-1); };
-
  
 if((pid=fork())>0){ int fd=open("/var/run/ser.pid", O_RDWR | O_CREAT);
            char bs[16]; sprintf(bs,"%d",pid);
@@ -302,6 +292,15 @@ dup(std);
 dup(std);
  setuid(p->pw_uid);
  setgid(p->pw_gid);
+ signal(SIGINT, sig_hand );
+ signal(SIGTERM, sig_hand );
+
+ if((efd=epoll_create(1024))<0){   sig_hand(0); exit(-1); };
+ if((events=(struct epoll_event*)malloc(32000*sizeof(struct epoll_event)))==NULL){ sig_hand(0); exit(-1); }
+ if((caches=(struct cache*)malloc(1024*sizeof(struct cache)))==NULL){ sig_hand(0); exit(-1); };
+  if((conn=(struct connection*)malloc(1024*sizeof(struct connection)))==NULL){ sig_hand(0); exit(-1); };
+  
+ 
    head_p=&head_inf_t;
    meta_init(head_p);
 
