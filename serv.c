@@ -24,8 +24,9 @@
      "Connection: keep-alive\r\n\r\n";
 char* path="/var/www/html%s";
 
- char* error_message1="<html><dody>NO SUCH FILE</body></html>";
-  char* error_message2="INTERNAL SERVER ERROR";
+ char* errors[]={"<html><body><h2>check your url box</body></html>",
+               "INTERNAL SERVER ERROR",
+                "HTTP/1.1 400 Bad Request" };
 struct head_inf{
   int path_len;
   int header_len;
@@ -64,10 +65,7 @@ void conn_close(struct connection* c);
 static int efd;
 static int current_number;
   struct epoll_event *events;
-void http_error(struct connection* c){
-     write(c->fd,"HTTP/1.1 400 Bad Request",strlen("HTTP/1.1 400 Bad Request"));
-        shutdown(c->fd,SHUT_RDWR);
-          };
+
 int check_cache(char* s,struct cache** ch){
 int i;
  
@@ -119,19 +117,21 @@ while((tmp=read(fd,t_buf,4096))>0){
  return 0;
 };
  void read_s(struct connection* c){
-  char* buf;
    char* sts;
     int i=0;
+   char head[head_p->header_len];
       struct stat st;
            errno=0;
       do{ i=read(c->fd, c->buf_get, 4096); 
       
        if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; }; shutdown(c->fd,SHUT_RDWR); return; };  
              break; }while(1);
-         
-        if((sts=strstr(c->buf_get,"HTTP"))==NULL){ http_error(c); return; };  
+        
+     do{
+        
+         if((sts=strstr(c->buf_get,"HTTP"))==NULL){ i=3; break; };  
    
-        if(strncmp(c->buf_get,"GET",3)==0){ 
+        if(strncmp(c->buf_get,"GET",3)!=0){ i=3; break; };
          
         c->buf_get[sts-c->buf_get-1]='\0';
           
@@ -139,19 +139,19 @@ while((tmp=read(fd,t_buf,4096))>0){
            
            char file_path[head_p->path_len+i];
             
-            char head[head_p->header_len];
-           
            sprintf(file_path, path, c->buf_get+4);
 
-           do{
-                if(stat(file_path,&st)<0){ c->error=1; break; };
+           
+                if(stat(file_path,&st)<0){ i=1; break; };
                    
                      if(st.st_size>9092){  
                    
                    if((c->file_fd=open(file_path,O_RDONLY))<0){ i=1; break; };
                  i=0;
                      c->type=1;  
-                c->buf_size=st.st_size; 
+                
+                 c->buf_size=st.st_size; 
+                 
                  c->size_tr=0;
                    break;
                 
@@ -167,20 +167,18 @@ while((tmp=read(fd,t_buf,4096))>0){
                         c->size_tr=0;     
                     break;
                         };
-                       }while(0);
+                     
+                    }while(0);
 
                if( i!=0 ){
-                    switch( i ){
-                   case 1 :
-                      c->buf_send=error_message1;
-                    c->buf_size=strlen(error_message1); break;
-                     case 2 : 
-                       c->buf_send=error_message2;
-                    c->buf_size=strlen(error_message2); break;
-                      default : break;
-                         };
-                      c->type=0;
-                     };
+                    
+                      c->buf_send=errors[i-1];
+                    
+                   c->buf_size=strlen(errors[i-1]);
+                    
+                            c->type=0;
+                     
+                       };
                 
             time(&tm_t);
              date=asctime(localtime(&tm_t));
@@ -194,12 +192,7 @@ while((tmp=read(fd,t_buf,4096))>0){
            
               write_s(c);
                
-                return;
-              };
-
-         http_error(c);
- 
-       };
+            };
 
   void write_s(struct connection* c){
      int i;
