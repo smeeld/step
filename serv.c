@@ -38,8 +38,6 @@ void meta_init(struct head_inf* m){
 
 char* date;
 time_t tm_t;
-char* str;
-char string[512];
 struct cache{
  char file[64];
   char* buf; 
