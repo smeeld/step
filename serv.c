@@ -24,7 +24,8 @@
      "Connection: keep-alive\r\n\r\n";
 char* path="/var/www/html%s";
 
- char* error_message="<html><dody>NO SUCH FILE</body></html>";
+ char* error_message1="<html><dody>NO SUCH FILE</body></html>";
+  char* error_message2="INTERNAL SERVER ERROR";
 struct head_inf{
   int path_len;
   int header_len;
@@ -32,7 +33,6 @@ struct head_inf{
   }head_inf_t, *head_p;
 void meta_init(struct head_inf* m){
     m->header_len=strlen(header)+82;
-    m->error_message_len=strlen(error_message);
    m->path_len=strlen(path);
     };
 
@@ -97,6 +97,7 @@ struct connection* c;
     free(caches);
      free(conn);
   close(efd);
+   close(sock);
  
  exit(0); };
 int cacher(char* s,struct cache* ch){
@@ -107,14 +108,14 @@ struct stat st;
 char t_buf[4096];
   count=0; 
   size_t Sz;
-if((fd=open(s,O_RDONLY))<0){   return -1;};
+if((fd=open(s,O_RDONLY))<0){   return 1;};
   fstat(fd, &st);
-char* buf=(char*)malloc(sizeof(char)*st.st_size);
-
+char* buf; if((buf=(char*)malloc(sizeof(char)*st.st_size))==NULL){ return 2; };
+       
 while((tmp=read(fd,t_buf,4096))>0){
       
         memcpy(buf+count, t_buf, tmp);
-count+=tmp;
+     count+=tmp;
        };
  
  close(fd);
@@ -164,7 +165,7 @@ count+=tmp;
                  
                 struct cache* ch;
                   
-              if(check_cache(file_path, &ch)<0){ c->error=1; break; }; 
+              if((i=check_cache(file_path, &ch))!=0){ c->error=i; break; }; 
                   c->error=0;
                      c->type=0;
                       c->buf_send=ch->buf;
@@ -174,9 +175,16 @@ count+=tmp;
                         };
                        }while(0);
 
-               if(c->error==1){
-                     c->buf_send=error_message;
-                    c->buf_size=head_p->error_message_len;
+               if(c->error!=0){
+                    switch(c->error){
+                   case 1 :
+                      c->buf_send=error_message1;
+                    c->buf_size=strlen(error_message1); break;
+                     case 2 : 
+                       c->buf_send=error_message2;
+                    c->buf_size=strlen(error_message2); break;
+                      default : break;
+                         };
                       c->type=0;
                      };
                 
@@ -241,30 +249,39 @@ if (ioctl(s, FIONBIO, &fl) &&
  {
 pid_t pid;
 int i;
+  int s;
 cache_count=0;
 conn_count=0;
-
-struct connection* conn2;
+ 
  struct passwd* p;
- signal(SIGINT, sig_hand );
+struct connection* conn2;
+
+signal(SIGINT, sig_hand );
  signal(SIGTERM, sig_hand );
- events=(struct epoll_event*)malloc(32000*sizeof(struct epoll_event));
- caches=(struct cache*)malloc(1024*sizeof(struct cache));
-  conn=(struct connection*)malloc(1024*sizeof(struct connection));
-int length=sizeof(struct sockaddr);
- struct sockaddr_in socket_s={ 
+
+
+struct sockaddr_in socket_s={ 
       .sin_family=AF_INET,
       .sin_addr.s_addr=INADDR_ANY,
        .sin_port=htons(80)
        };
 
-  if((p=getpwnam("g"))==NULL){  exit(-1); };
+ int length=sizeof(struct sockaddr);
+ 
+ if((p=getpwnam("g"))==NULL){  exit(-1); };
+  
 if((sock=socket(AF_INET,SOCK_STREAM,0))<0){  exit(-1);};
   
  if(bind(sock,(struct sockaddr*)&socket_s,length)<0){  exit(-1); };
   sock_opt(sock);
  set_non_bl(sock);
  listen(sock,1024);
+ 
+ if((efd=epoll_create(1024))<0){   sig_hand(0); exit(-1); };
+ if((events=(struct epoll_event*)malloc(32000*sizeof(struct epoll_event)))==NULL){ sig_hand(0); exit(-1); }
+ if((caches=(struct cache*)malloc(1024*sizeof(struct cache)))==NULL){ sig_hand(0); exit(-1); };
+  if((conn=(struct connection*)malloc(1024*sizeof(struct connection)))==NULL){ sig_hand(0); exit(-1); };
+
  
 if((pid=fork())>0){ int fd=open("/var/run/ser.pid", O_RDWR | O_CREAT);
            char bs[16]; sprintf(bs,"%d",pid);
@@ -291,14 +308,14 @@ dup(std);
    meta_init(head_p);
 
     ( conn+sock )->fd=sock;
-if((efd=epoll_create(1024))<0){  exit(-1); };
+
 struct epoll_event ev={
       .data.ptr=conn+sock,
       .events=EPOLLIN
         };
 epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
  ev.events=EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
-  int s;
+ 
      
 while(1)
 {  
