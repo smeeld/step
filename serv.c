@@ -29,7 +29,6 @@ char* path="/var/www/html%s";
 struct head_inf{
   int path_len;
   int header_len;
-  int error_message_len;
   }head_inf_t, *head_p;
 void meta_init(struct head_inf* m){
     m->header_len=strlen(header)+82;
@@ -38,8 +37,6 @@ void meta_init(struct head_inf* m){
 
 char* date;
 time_t tm_t;
-char* str;
-char string[512];
 struct cache{
  char file[64];
   char* buf; 
@@ -57,7 +54,6 @@ struct connection
      char buf_get[995];
      char* buf_send;
      int file_fd;
-     int error;
    };
  struct connection* conn;
 int sock;
@@ -152,8 +148,8 @@ while((tmp=read(fd,t_buf,4096))>0){
                    
                      if(st.st_size>9092){  
                    
-                   if((c->file_fd=open(file_path,O_RDONLY))<0){ c->error=1; break; };
-                 c->error=0;
+                   if((c->file_fd=open(file_path,O_RDONLY))<0){ i=1; break; };
+                 i=0;
                      c->type=1;  
                 c->buf_size=st.st_size; 
                  c->size_tr=0;
@@ -163,8 +159,8 @@ while((tmp=read(fd,t_buf,4096))>0){
                  
                 struct cache* ch;
                   
-              if((i=check_cache(file_path, &ch))!=0){ c->error=i; break; }; 
-                  c->error=0;
+              if((i=check_cache(file_path, &ch))!=0){ break; }; 
+                  i=0;
                      c->type=0;
                       c->buf_send=ch->buf;
                         c->buf_size=ch->size;
@@ -173,8 +169,8 @@ while((tmp=read(fd,t_buf,4096))>0){
                         };
                        }while(0);
 
-               if(c->error!=0){
-                    switch(c->error){
+               if( i!=0 ){
+                    switch( i ){
                    case 1 :
                       c->buf_send=error_message1;
                     c->buf_size=strlen(error_message1); break;
