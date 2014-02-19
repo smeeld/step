@@ -5,9 +5,11 @@
 #include <random>
 #include <chrono>
 using namespace std;
+
  vector<int> m;
- vector<int> tmp;
+
  typedef vector<int>::iterator itr;
+
  itr it, itmpm;
 
  bool cmp(int a){ return a < *itmpm; };
@@ -40,25 +42,26 @@ using namespace std;
   };
 
  int main(int arg, char * s[]){
-  int i;
-  int num=stoi(string(s[1]));
-  int out=stoi(string(s[2]));
   
-  tmp.resize(num);
+  m.resize(stoi(string(s[1])));
 
-unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+  struct gen_t{
+
+minstd_rand0 generator;
+
+  gen_t(): generator(chrono::system_clock::now().time_since_epoch().count()){};
+  
+  int operator()(){ return generator(); };
+
+  }gen;
  
-minstd_rand0 gen (seed); 
- for(i=0;i<num;i++)
-  {
-   m.push_back(gen());
-    };
+ generate(m.begin(), m.end(), gen); 
+
 
  it=m.begin();
 
  sort(m.end());
 
-for_each(m.begin(),m.begin()+out, [](int i){ cout<<"NUM=="<<i<<endl; });
+ for_each(m.begin(),m.begin()+stoi(string(s[2])), [](int i){ cout<<"NUM=="<<i<<endl; });
  
-  
-  };
+   };
