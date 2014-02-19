@@ -7,32 +7,34 @@
 using namespace std;
  vector<int> m;
  vector<int> tmp;
- vector<int>::iterator it;
- int pos;
-  void sort(int len){
-   int i;
-   int j=0;
-   int l=0;
-   int r;
-   switch(len){
-  case 2 : if(*it>*(it+1)){ swap(*it, *(it+1)); }; it+=2; return;  
-  
-  case 1 : it++; return;
+ typedef vector<int>::iterator itr;
+ itr it, itmpm;
 
-  default : 
-            
-   while(l==0){ if(j==len){ it+=len; return; };
-        r=1;
-  for(i=0;i<len;i++){ 
-   
-   if(*(it+i)<*(it+j)){ tmp[l]=*(it+i); l++; }else{ tmp[len-r]=*(it+i); r++; };
+ bool cmp(int a){ return a < *itmpm; };
+
+  void sort(itr r){
+  
+   itr itmp;
+
+  
+   if(r==(it+2)){
+   if(*it>*(it+1)){ swap(*it, *(it+1)); }; it+=2; return;  
+  };
+  if((it+1)==r){ it++; return; };
+
+    itmp=it;
+   itmpm=it;
+
+   while(itmp==it){ if(itmpm==r){ it=itmpm; return; };
+        
+  itmp=partition(it, r, cmp);
     
-     }; j++;
-    };
-  move(tmp.begin(), tmp.begin()+len, it); break;
-   };
-  sort(l);
-   sort(r-1);
+       itmpm++;
+    
+      };
+ 
+  sort(itmp);
+   sort(r);
 
     return;
   };
@@ -54,7 +56,7 @@ minstd_rand0 gen (seed);
 
  it=m.begin();
 
- sort(num);
+ sort(m.end());
 
 for_each(m.begin(),m.begin()+out, [](int i){ cout<<"NUM=="<<i<<endl; });
  
