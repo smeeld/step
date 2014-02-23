@@ -24,18 +24,20 @@ glXSwapBuffers(dp,win);
 
 };
 void loadtex(int* tex,const char* s,int n){
-IMG_Init(IMG_INIT_JPG);
-SDL_Surface* sur;
-sur=IMG_Load(s);if(sur==NULL){printf("NO LOAD IMAGE\n");
-exit(1);};
+ 
+ struct image img;
+
+ ret_image(s, &img);
+
 glBindTexture(GL_TEXTURE_2D,tex[n]);
 glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
 
-glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,sur->w,sur->h,0,GL_RGB,GL_UNSIGNED_BYTE,sur->pixels);
- SDL_FreeSurface(sur);
- IMG_Quit();};
+glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,img.w, img.h, 0, GL_RGB,GL_UNSIGNED_BYTE, img.buf);
+   
+    free((char*)img.buf);
+  };
 void check(){int i=0;
 /*while(run){*/
 if(XCheckWindowEvent(dp,win1,ButtonPressMask,&e)){
@@ -92,7 +94,9 @@ void windows(){
 int i;float x=0;
 int count=200;
 for(i=0;i<count;i++){
+
 rec[i].x=i;rec[i].y=(int)x*x/500;rec[i].width=1;rec[i].height=60-2*rec[i].y;
+
 if(i<100){x+=1;}else{x-=1;};};
 XSetWindowAttributes attr1;
 Visual* visual;
@@ -114,9 +118,11 @@ win2 = XCreateWindow(dp, root, 10, 10,200,60,3, DefaultDepth(dp,screen), InputOu
 XDefineCursor(dp, win2,cursor( dp, win2 ) );
 win3 = XCreateWindow(dp, root, 10, 100,200,60,0, DefaultDepth(dp,screen), InputOutput,
 						visual,CWBackPixel |CWSaveUnder | CWColormap | CWEventMask |  CWOverrideRedirect | CWBorderPixel, &attr1);
+
+
 image_load("/home/g/s.jpg",dp,win1);
 image_load("/home/g/s.jpg",dp,win2);
-image_load("/home/g/s.jpg",dp,win3);
+image_load("/home/g/s.jpg",dp,win3);printf("OKK\n");
 XMapWindow( dp, win2 );
 XMapWindow(dp,win3);
 XGrabKeyboard(dp, win1, True, GrabModeAsync,                  

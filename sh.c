@@ -1,9 +1,4 @@
-#include <stdio.h>
 #include <x.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 struct sh{
 char* buffer;
@@ -66,9 +61,9 @@ void Sp(struct model* m, int in){
  GLuint* i;
  int sz=m[in].size;
  int Y=sqrt(sz);
-printf("OG==%s\n",m[in].texfile);
- s=(float*)malloc(sizeof(float)*sz*8);
-i=(GLuint*)malloc(sizeof(GLuint)*sz*6);
+
+ if((s=(float*)malloc(sizeof(float)*sz*8))==NULL){ printf("ERROR MEM\n");return; };
+if((i=(GLuint*)malloc(sizeof(GLuint)*sz*6))==NULL){ printf("ERROR MEM\n");return; };
 int x,y;
 float a=0;
 float b=0;a=0;
@@ -111,29 +106,115 @@ glGenTextures(1,m[in].tex);
 loadtex(m[in].tex, m[in].texfile,0);
   LoadVBO(m,in);
  };
-void image_load(const char* file,Display* d,Window w){
-SDL_Surface* sur;
-IMG_Init(IMG_INIT_JPG);
-sur=IMG_Load(file);if(sur==NULL){printf("NO LOAD IMAGE\n");
-exit(1);};
-int wi=sur->w;
-int h=sur->h;
-char* buf=sur->pixels;
-unsigned char* img=(unsigned char*)malloc(sizeof(char)*4*wi*h);
-int x,y;
-for(x=0,y=0;x<wi*h*4,y<wi*h*3;x+=4,y+=3){
-img[x]=buf[y+2];img[x+1]=buf[y+1],img[x+2]=buf[y];img[x+3]=0xff;};
-  Pixmap pix=XCreatePixmap(d, XDefaultRootWindow(d), wi, h, DefaultDepth(d,DefaultScreen(d)));
 
-  XImage* i=XCreateImage(d,XDefaultVisual(d, XDefaultScreen(d)),DefaultDepth(d,DefaultScreen(d)) ,ZPixmap,0,img,
-wi,h,32,0);
+METHODDEF(void)
+_error_exit (j_common_ptr cinfo)
+{
+  _error_ptr err = (_error_ptr) cinfo->err;
+
+  (*cinfo->err->output_message) (cinfo);
+
+  longjmp(err->setjmp_buffer, 1);
+}
+
+int ret_image(const char* file, struct image* img){
+
+  int  h, w, count;
+
+ unsigned char* buf; unsigned char* buf2;
+  struct jpeg_decompress_struct cinfo;
+  
+  struct _error_mgr jerr;
+
+  FILE * infile;
+  JSAMPARRAY buffer;
+  int row_len;
+
+  if ((infile = fopen(file, "rb")) == NULL) {
+    fprintf(stderr, "can't open %s\n", file);
+    return -1;
+  }
+
+  cinfo.err = jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = _error_exit;
+  
+  if (setjmp(jerr.setjmp_buffer)) {
+   
+    jpeg_destroy_decompress(&cinfo);
+    fclose(infile);
+    return -1;
+  }
+ 
+  jpeg_create_decompress(&cinfo);
+
+  jpeg_stdio_src(&cinfo, infile);
+
+  (void) jpeg_read_header(&cinfo, TRUE);
+
+  (void) jpeg_start_decompress(&cinfo);
+  
+  w=cinfo.output_width;
+
+  h=cinfo.output_height;
+  count=0;
+  row_len = w * cinfo.output_components;
+ 
+  
+ 
+  buffer = (*cinfo.mem->alloc_sarray)
+		((j_common_ptr) &cinfo, JPOOL_IMAGE, row_len, 1);
+
+  if((buf=(unsigned char*)malloc(sizeof(unsigned char)*row_len* h))==NULL){ fclose(infile); return -1; }; 
+   
+  if((buf2=(unsigned char*)malloc(sizeof(unsigned char)*w * 4 * h))==NULL){ fclose(infile); return -1; }; 
+
+  while (cinfo.output_scanline < cinfo.output_height) {
+   
+    (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+    
+    memcpy(&buf[count], &buffer[0], row_len);
+
+   count+=row_len;
+ 
+   }
+
+  (void) jpeg_finish_decompress(&cinfo);
+ 
+  jpeg_destroy_decompress(&cinfo);
+
+  fclose(infile);
+
+ int y, x=0;
+for(y=0; y<w*h*3; y+=3){
+
+ buf2[x]=buf[y+2]; buf2[x+1]=buf[y+1];buf2[x+2]=buf[y]; buf2[x+3]=0xff; x+=4; };
+
+  img->buf=buf2;
+  img->h=h;
+ img->w=w;
+
+  free(buf);
+
+ return 0;
+
+ };
+  
+
+void image_load(const char* file,Display* d,Window w){
+
+   struct image img;
+
+  if(ret_image(file, &img)<0){ return; };
+ 
+  Pixmap pix=XCreatePixmap(d, XDefaultRootWindow(d), img.w, img.h, DefaultDepth(d,DefaultScreen(d)));
+
+  XImage* i=XCreateImage(d,XDefaultVisual(d, XDefaultScreen(d)),DefaultDepth(d,DefaultScreen(d)) ,ZPixmap,0, img.buf, img.w, img.h, 32,0);
 
 XPutImage(d, pix, DefaultGC(d, 0), i, 0, 0,0, 0, 1200, 1100);
 XSetWindowBackgroundPixmap(d, w, pix);
 XFreePixmap(d,pix);
-free(img);
-SDL_FreeSurface(sur);
-IMG_Quit();};
+free(img.buf);
+    };
 void Par(struct model* m,int in){
 int x,y,sq;
 float xt,yt;

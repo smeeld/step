@@ -61,10 +61,10 @@ GLuint p=CreateShader();
 glUseProgram(p);
 prog=p;
 */
- models[0].texfile="/home/g/s2.jpg";
+ models[0].texfile="/home/g/s5.jpg";
 ang=0;
 models[1].texfile="/home/g/s.jpg";
-printf("OK\n");
+
  SP=Sp(models,0);
  Par(models,1);
 /*
@@ -84,7 +84,7 @@ glLightfv(GL_LIGHT0,GL_DIFFUSE,col);
 glLightfv(GL_LIGHT0,GL_POSITION,pos);
 glDisable(GL_LIGHTING);
 glDisable(GL_LIGHT0);*/
-windows();
+windows();printf("OKK\n");
 font=XLoadQueryFont(dp,"-*-helvetica-*-r-*-*-16-*-*-*-*-*-*-*");
 gv.foreground=col1.pixel;
 gv.line_width=2;
