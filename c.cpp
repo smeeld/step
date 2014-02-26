@@ -45,18 +45,9 @@ using namespace std;
   
   m.resize(stoi(string(s[1])));
 
-  struct gen_t{
-
-minstd_rand0 generator;
-
-  gen_t(): generator(chrono::system_clock::now().time_since_epoch().count()){};
-  
-  int operator()(){ return generator(); };
-
-  }gen;
- 
+minstd_rand0 gen(chrono::system_clock::now().time_since_epoch().count());
+   
  generate(m.begin(), m.end(), gen); 
-
 
  it=m.begin();
 
