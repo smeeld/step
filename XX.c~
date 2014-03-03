@@ -56,11 +56,11 @@ glClearColor(0,0,0,0);
 
 glEnable(GL_NORMALIZE);
 glEnable(GL_DEPTH_TEST);
-glEnable(GL_TEXTURE_2D);
+glEnable(GL_TEXTURE_2D);/*
 GLuint p=CreateShader();
 glUseProgram(p);
 prog=p;
-
+*/
  models[0].texfile="/home/g/s5.jpg";
 ang=0;
 models[1].texfile="/home/g/s.jpg";

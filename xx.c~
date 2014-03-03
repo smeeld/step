@@ -27,7 +27,7 @@ void loadtex(int* tex,const char* s,int n){
  
  struct image img;
 
- ret_image(s, &img,TP_TEX);
+ ret_image(s, &img);
 
 glBindTexture(GL_TEXTURE_2D,tex[n]);
 glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);

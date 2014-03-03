@@ -45,7 +45,7 @@ return 0;
 };
 GLuint CreateShader(void){
 
-
+GLuint vs,gs,fs;
 GLuint pr=glCreateProgram();
 
 works(1,"/home/g/vs.glsl",&vs);
