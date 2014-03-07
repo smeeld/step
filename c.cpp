@@ -12,8 +12,6 @@ using namespace std;
 
  itr it, itmpm;
 
- bool cmp(int a){ return a < *itmpm; };
-
   void sort(itr r){
   
    itr itmp;
@@ -29,7 +27,7 @@ using namespace std;
 
    while(itmp==it){ if(itmpm==r){ it=itmpm; return; };
         
-  itmp=partition(it, r, cmp);
+  itmp=partition(it, r, [](int a){ return a < *itmpm;});
     
        itmpm++;
     
