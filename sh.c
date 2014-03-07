@@ -329,7 +329,7 @@ glDisableClientState(GL_TEXTURE_COORD_ARRAY);
  
 void Fon()
   {
-   glBindTexture(GL_TEXTURE_2D, models[0].tex[0]);
+   
 glBegin(GL_QUADS);
 glVertex3f(-2.0,2.0,0.9);
 glTexCoord2f(0.0,0.0);
