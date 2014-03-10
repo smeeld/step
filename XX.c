@@ -63,21 +63,21 @@ prog=p;
 
  models[0].texfile="/home/g/s5.jpg";
 ang=0;
-models[1].texfile="/home/g/s.jpg";
+models[1].texfile="/home/g/s5.jpg";
 
  SP=Sp(models,0);
  Par(models,1);
-/*
-GLint sloc=glGetUniformLocation( p, "sampler1");
-GLint location = glGetUniformLocation( p, "sampler2");
-printf("TEXTURE IS==%d\n",sloc);
-printf("TEXTURE IS==%d\n",location);
-glUniform1i(sloc,0);
+
+glUniform1i(glGetUniformLocation( prog, "tex"),0);
+glUniform1i(glGetUniformLocation( prog, "tex2"),1);
+
 glActiveTexture(GL_TEXTURE0);
-glBindTexture(GL_TEXTURE_2D,tex[0]);
-glUniform1i(location,1);
+glBindTexture(GL_TEXTURE_2D,models[1].tex[0]);
+
 glActiveTexture(GL_TEXTURE1);
-glBindTexture(GL_TEXTURE_2D,tex[1]);
+glBindTexture(GL_TEXTURE_2D,models[0].tex[0]);
+
+
 /*glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 glMaterialfv(GL_FRONT_AND_BACK,GL_DIFFUSE,mat);
 glLightfv(GL_LIGHT0,GL_DIFFUSE,col);

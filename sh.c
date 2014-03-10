@@ -49,7 +49,7 @@ GLuint CreateShader(void){
 GLuint pr=glCreateProgram();
 
 works(1,"/home/g/vs.glsl",&vs);
-works(2,"/home/g/gs.glsl",&fs);/*
+works(3,"/home/g/fs.glsl",&fs);/*
 works(3,"/home/g/fs.glsl",&fs);*/
   glAttachShader(pr, vs);/*
  glAttachShader(pr, gs);*/
@@ -107,7 +107,8 @@ m[in].vertex=s;
 glGenTextures(1,m[in].tex);
 loadtex(m[in].tex, m[in].texfile,0);
   LoadVBO(m,in);
- };
+ 
+};
 
 METHODDEF(void)
 _error_exit (j_common_ptr cinfo)
@@ -300,36 +301,65 @@ free(m);
   };  
 void DrawScene(struct model* m, int first_num, int num)
    {
-    glBindTexture(GL_TEXTURE_2D, m[first_num].tex[0]);
+    glBindTexture(GL_TEXTURE_2D, m[0].tex[0]);
+glUniform1i(glGetUniformLocation(prog, "i"),1);
 
-glEnableClientState(GL_VERTEX_ARRAY);
-glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+/*glEnableClientState(GL_TEXTURE_COORD_ARRAY);*/
 
-int x, sz;
+int x, sz,loc,vec;
+loc=glGetAttribLocation(prog, "texcoord");
+glEnableVertexAttribArray(loc);
+vec=glGetAttribLocation(prog, "vec");
+glEnableVertexAttribArray(vec);/*
+glEnableClientState(GL_VERTEX_ARRAY);*/
 for(x=first_num;x<first_num+num;x++){
 int sz=m[x].size;
 glPushMatrix();
 
  glTranslatef(m[x].pos[0],m[x].pos[1], m[x].pos[2]);
-glBindTexture(GL_TEXTURE_2D, m[x].tex[0]);
+/*glBindTexture(GL_TEXTURE_2D, m[x].tex[0]);*/
 glRotatef(ang,0.2,1.0,-0.1);if(ang<360){ang+=0.05;}else{ang=0;};
 glScalef(m[x].scale[0],m[x].scale[1],m[x].scale[2]);
 glBindBuffer(GL_ARRAY_BUFFER,m[x].buf[0]);
-glTexCoordPointer(2,GL_FLOAT,0,(char*)(sizeof(float)*6*sz));
 
-glVertexPointer(3,GL_FLOAT,0,(char*)NULL);
+glVertexAttribPointer(loc, 2 , GL_FLOAT, GL_FALSE, 0, (char*)(sizeof(float)*6*sz) );
+glVertexAttribPointer(vec, 3 , GL_FLOAT, GL_FALSE, 0, (char*)NULL );
+
+
+/*
+glTexCoordPointer(2,GL_FLOAT,0,(char*)(sizeof(float)*6*sz));
+/
+glVertexPointer(3,GL_FLOAT,0,(char*)NULL);*/
 
 
 glDrawElements(GL_TRIANGLES, 6*sz,GL_UNSIGNED_INT,m[x].index);
   glPopMatrix();
-};
+};glDisableVertexAttribArray(loc);
+glDisableVertexAttribArray(vec);
+/*
 glDisableClientState(GL_VERTEX_ARRAY);
-glDisableClientState(GL_TEXTURE_COORD_ARRAY); 
+/*glDisableClientState(GL_TEXTURE_COORD_ARRAY);*/ 
  };
  
 void Fon()
-  {
-   
+  {/*
+  float vec[]={-2.0,2.0,0.9,2.0,2.0,0.9,-2.0,-2.0, 0.9,-2.0,-2.0, 0.9};
+  float tex[]={0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0};
+  GLuint ind[]={0,1,2,3};
+glUniform1i(glGetUniformLocation(prog, "i"),0);
+
+int v=glGetAttribLocation(prog, "vec");
+glEnableVertexAttribArray(v);
+int t=glGetAttribLocation(prog, "texcoord");
+glEnableVertexAttribArray(t);
+glVertexAttribPointer(t, 2 , GL_FLOAT, GL_FALSE, 0, tex );
+glVertexAttribPointer(v, 3 , GL_FLOAT, GL_FALSE, 0, vec );
+glDrawElements(GL_QUADS, 4,GL_UNSIGNED_INT,ind);
+  
+glDisableVertexAttribArray(v);
+glDisableVertexAttribArray(t);
+*/
+glUniform1i(glGetUniformLocation(prog, "i"),0);
 glBegin(GL_QUADS);
 glVertex3f(-2.0,2.0,0.9);
 glTexCoord2f(0.0,0.0);
@@ -340,5 +370,5 @@ glTexCoord2f(1.0,1.0);
 glVertex3f(-2.0,-2.0, 0.9);
 glTexCoord2f(1.0,0.0);
 glEnd();
- 
+
 };

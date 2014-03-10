@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+int cmp(void* a1, void* a2){
+ return *((int*)a1<*(int*)a2);
+ };
 int* m;
 int* tmp;
 int pos;
@@ -11,7 +14,7 @@ int pos;
    int mid;
    int r;
    switch(len){
-  case 2 : if(m[pos]>m[pos+1]){ mid=m[pos]; m[pos]=m[pos+1]; m[pos+1]=mid; }; pos+=2; return;  
+  case 2 : if(cmp(&m[pos],&m[pos+1])){ mid=m[pos]; m[pos]=m[pos+1]; m[pos+1]=mid; }; pos+=2; return;  
   
   case 1 : pos++; return;
 
@@ -21,7 +24,7 @@ int pos;
         r=1;
   for(i=0;i<len;i++){ 
    
-   if(m[pos+i]<m[pos+j]){ tmp[l]=m[pos+i]; l++; }else{ tmp[len-r]=m[pos+i]; r++; };
+   if(cmp(&m[pos],&m[pos+1])){ tmp[l]=m[pos+i]; l++; }else{ tmp[len-r]=m[pos+i]; r++; };
     
      }; j++;
     };
