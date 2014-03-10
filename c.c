@@ -1,37 +1,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-int cmp(void* a1, void* a2){
- return *((int*)a1<*(int*)a2);
- };
+
 int* m;
-int* tmp;
+
 int pos;
+
+  inline int part(int len, int p){
+  int l=0;
+  int r=len;
+  int mdl;
+     int mid=m[pos+p];
+
+     while(l!=r){
+
+     while(mid>m[pos+l]){ l++; if(l==r){ return l;}; };
+
+
+        do{ r--; if(l==r){ return l;}; }while(m[pos+r]>mid || m[pos+r]==mid);
+
+           mdl=m[pos+l]; m[pos+l]=m[pos+r]; m[pos+r]=mdl; 
+     l++;
+    };
+  return l;
+  };
+
+
   void sort(int len){
-   int i;
-   int j=0;
-   int l=0;
-   int mid;
-   int r;
+
+   int j;
+   int l;
+
+
    switch(len){
-  case 2 : if(cmp(&m[pos],&m[pos+1])){ mid=m[pos]; m[pos]=m[pos+1]; m[pos+1]=mid; }; pos+=2; return;  
+  case 2 : if(m[pos+1]<m[pos]){ l=m[pos]; m[pos]=m[pos+1]; m[pos+1]=l; }; pos+=2; return;  
   
   case 1 : pos++; return;
 
   default : 
-            
+         l=0; j=0;   
    while(l==0){ if(j==len){ pos+=len; return; };
-        r=1;
-  for(i=0;i<len;i++){ 
-   
-   if(cmp(&m[pos],&m[pos+1])){ tmp[l]=m[pos+i]; l++; }else{ tmp[len-r]=m[pos+i]; r++; };
-    
-     }; j++;
+         
+
+              l=part(len,j); j++;
+       }; break;
     };
-  memcpy(&m[pos],tmp,len*4); break;
-   };
+  
   sort(l);
-   sort(r-1);
+   sort(len-l);
 
     return;
   };
@@ -43,8 +59,6 @@ int pos;
  pos=0;
    m=malloc(sizeof(int)*num);
   
-  tmp=malloc(sizeof(int)*num);
- 
  for(i=0;i<num;i++)
   {
    m[i]=random();
@@ -56,6 +70,6 @@ for(i=0;i<out;i++)
  {
   printf("NUM==%d\n",m[i]);
   };
-free(tmp);
+
  free(m);
   };
