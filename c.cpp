@@ -5,53 +5,60 @@
 #include <random>
 #include <chrono>
 using namespace std;
+int pos;
+vector<int> m;
+  inline int part(int len, int p){
+  int l=0;
+  int r=len;
+     int mid=m[pos+p];
 
-typedef vector<int>::iterator it;
+     while(l!=r){
 
-it part(it fr, it lst, it pos){
-  
-
-     while(*fr!=*lst){
-
-     while(*pos>*fr){ ++fr; if(*fr==*lst){ return fr; }; };
+     while(mid>m[pos+l]){ l++; if(l==r){ return l;}; };
 
 
-        do{ --lst; if(*fr==*lst){ return fr;}; }while(*lst>*pos);
+        do{ r--; if(l==r){ return l;}; }while(m[pos+r]>mid || m[pos+r]==mid);
 
-           swap(*fr, *lst);
-     ++fr;
+           swap(m[pos+l],m[pos+r]);
+     l++;
     };
-  return fr;
+  return l;
   };
 
- 
-  void sort(it fr, it lst){ 
-  int j=0;
-  it tmp;
-   if(fr==lst){ return; };
-   if((fr+1)==lst){ if(*fr>*lst){ swap(*fr, *lst); }; return; };
-  
-         tmp=fr; 
-     while(tmp==fr){ if((fr+j)==lst){ return; }; 
-                   
-                   tmp=part(fr, lst, fr+j); j++;
-                   };
-             
-  sort(fr, tmp);
-   sort(tmp, lst);
 
-    return;
-  };
+ void srt(int len){
 
- int main(int arg, char * s[]){
+   int j;
+   int l;
+
+
+   switch(len){
+  case 2 : if(m[pos+1]<m[pos]){ swap(m[pos],m[pos+1]); }; pos+=2; return;
+
+  case 1 : pos++; return;
+
+  default :
+         l=0; j=0;
+   while(l==0){ if(j==len){ pos+=len; return; };
+
+
+              l=part(len,j); j++;
+       }; break;
+    };
+
+  srt(l);
+   srt(len-l);
+ return;
+ };
+int main(int arg, char * s[]){
   
  int num=stoi(s[1]);
- ranlux24 gen(chrono::system_clock::now().time_since_epoch().count());
-   
-   vector<int> m(num);
-  generate(m.begin(), m.end(), gen);
-  for_each(m.begin(),m.end(),[](int i){ return i*2;});
- sort(m.begin(),m.end());
+ minstd_rand0 gen(chrono::system_clock::now().time_since_epoch().count());
+
+   m.resize(num);
+   generate(m.begin(), m.end(), gen);
+  pos=0;
+   srt(num);
 
  for_each(m.begin() ,m.begin()+stoi(string(s[2])), [](int i){ cout<<"NUM=="<<i<<endl; });
  
