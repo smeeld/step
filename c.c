@@ -17,7 +17,7 @@ int pos;
      while(mid>m[pos+l]){ l++; if(l==r){ return l;}; };
 
 
-        do{ r--; if(l==r){ return l;}; }while(m[pos+r]>mid || m[pos+r]==mid);
+        do{ r--; if(l==r){ return l;}; }while(m[pos+r]>mid);
 
            mdl=m[pos+l]; m[pos+l]=m[pos+r]; m[pos+r]=mdl; 
      l++;
