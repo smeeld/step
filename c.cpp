@@ -6,45 +6,39 @@
 #include <chrono>
 using namespace std;
 
-int pos;
- vector<int> m;
+typedef vector<int>::iterator it;
+
+it part(it fr, it lst, it pos){
+  
+
+     while(*fr!=*lst){
+
+     while(*pos>*fr){ ++fr; if(*fr==*lst){ return fr; }; };
 
 
-int part(int len, int p){
-  int l=0;
-  int r=len;
-     int mid=m[pos+p];
+        do{ --lst; if(*fr==*lst){ return fr;}; }while(*lst>*pos);
 
-     while(l!=r){
-
-     while(mid>m[pos+l]){ l++; if(l==r){ return l;}; };
-
-
-        do{ r--; if(l==r){ return l;}; }while(m[pos+r]>mid);
-
-           swap(m[pos+l],m[pos+r]);
-     l++;
+           swap(*fr, *lst);
+     ++fr;
     };
-  return l;
+  return fr;
   };
 
  
-  void sort(int len){
+  void sort(it fr, it lst){ 
   int j=0;
-   int l=0;
-  switch(len){
-   case 1 : pos++; return;
-   case 2 : if(m[pos]>m[pos+1]){ swap(m[pos], m[pos+1]); }; pos+=2; return;  
-   default:
-          
-     while(l==0){ if(j==len){ pos+=len; return; }; 
+  it tmp;
+   if(fr==lst){ return; };
+   if((fr+1)==lst){ if(*fr>*lst){ swap(*fr, *lst); }; return; };
   
-                   l=part(len, j); j++;
-                   }; break;
-               };
- 
-  sort(l);
-   sort(len-l);
+         tmp=fr; 
+     while(tmp==fr){ if((fr+j)==lst){ return; }; 
+                   
+                   tmp=part(fr, lst, fr+j); j++;
+                   };
+             
+  sort(fr, tmp);
+   sort(tmp, lst);
 
     return;
   };
@@ -52,13 +46,12 @@ int part(int len, int p){
  int main(int arg, char * s[]){
   
  int num=stoi(s[1]);
- minstd_rand0 gen(chrono::system_clock::now().time_since_epoch().count());
-   m.resize(num);
-
- generate(m.begin(), m.end(), gen);
- 
-pos=0;
- sort(num);
+ ranlux24 gen(chrono::system_clock::now().time_since_epoch().count());
+   
+   vector<int> m(num);
+  generate(m.begin(), m.end(), gen);
+  for_each(m.begin(),m.end(),[](int i){ return i*2;});
+ sort(m.begin(),m.end());
 
  for_each(m.begin() ,m.begin()+stoi(string(s[2])), [](int i){ cout<<"NUM=="<<i<<endl; });
  
