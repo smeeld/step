@@ -1,19 +1,4 @@
-#include <iostream>
-#include <set>
-#include <signal.h>
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
-#include <algorithm>
-#include <iterator>
-#include <sstream>
-#include <fstream>
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <exception>
-#include <unordered_map>
-#include <stdio.h> 
-#include <time.h> 
-
+#include <serv.h>
 using namespace std;
 using boost::asio::ip::tcp;
 typedef struct _cache{

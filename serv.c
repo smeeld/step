@@ -22,7 +22,7 @@
      "Content-Type: %s; charset=utf-8\r\n"
      "Content-Length: %d \r\n"
      "Connection: keep-alive\r\n\r\n";
-char* path="/var/www/html%s";
+char* path="/var/www%s";
 
  char* errors[]={"<html><body><h2>check your url box</body></html>",
                "INTERNAL SERVER ERROR",
@@ -141,7 +141,7 @@ while((tmp=read(fd,t_buf,4096))>0){
             
            sprintf(file_path, path, c->buf_get+4);
 
-           
+          
                 if(stat(file_path,&st)<0){ i=1; break; };
                    
                      if(st.st_size>9092){  
@@ -260,7 +260,7 @@ if((sock=socket(AF_INET,SOCK_STREAM,0))<0){  exit(-1);};
  set_non_bl(sock);
  listen(sock,1024);
  
-if((pid=fork())>0){ int fd=open("/var/run/ser.pid", O_RDWR | O_CREAT);
+/*if((pid=fork())>0){ int fd=open("/var/run/ser.pid", O_RDWR | O_CREAT);
            char bs[16]; sprintf(bs,"%d",pid);
           write(fd,bs,strlen(bs));
         close(fd);
@@ -280,7 +280,7 @@ for(i = n-1; i >= 0; --i) {
 dup(std);
 dup(std);
  setuid(p->pw_uid);
- setgid(p->pw_gid);
+ setgid(p->pw_gid);*/
  signal(SIGINT, sig_hand );
  signal(SIGTERM, sig_hand );
 
