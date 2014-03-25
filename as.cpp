@@ -101,9 +101,9 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   que_round=0;
   run=1;
   server=this;
- /*
+ 
  pthread_t pt;
- pthread_create(&pt,0,th,this);*/
+ pthread_create(&pt,0,th,this);
   };
  
  serv::~serv(){ 
@@ -130,7 +130,7 @@ void serv::proc_thread(const conn* s){
    cs=conn_map[ss];if(cs==NULL){ cout<<"NULL  ==================  "<<ss<<"  SZ  "<<ques.size()<<endl; mt.unlock(); continue; };
   
    */
-    std::cout<<" QUEU  "<<cs->state<<" SOCK  "<<cs->fd<<"  SZZZ   "<<ques.size()<<std::endl;
+    /*std::cout<<" QUEU  "<<cs->state<<" SOCK  "<<cs->fd<<"  SZZZ   "<<ques.size()<<std::endl;*/
       
    switch(cs->state){
     case SOCK_READ : error=0;
@@ -230,7 +230,7 @@ void conn::send_header(){
          pev=&events[i]; s=events[i].data.fd;
           p=conn_map[s];
        if ((pev->events & EPOLLERR) || (pev->events & EPOLLHUP) && (pev->events & EPOLLRDHUP))
-	         { cout<<"EXX "<<s<<endl;
+	         { 
 	           delete p;
                  mt.lock();conn_map.erase(s);mt.unlock();
            epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
@@ -338,7 +338,7 @@ if (ioctl(s, FIONBIO, &fl) &&
               
  int conn::write_s(){
    int i; 
-            cout<<"WRWR RD"<<endl;
+           
            if(state==SOCK_READ || state==KEEP_WAIT){   return 0; };
 
            
@@ -362,7 +362,7 @@ if (ioctl(s, FIONBIO, &fl) &&
                  };
     if(type==1){ 
         do{errno=0; i=sendfile(fd, file_fd, 0, buf_size);
-           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0;cout<<"EAHGAIN WR"<<endl; continue; };
+           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
                 shutdown(fd,SHUT_RDWR);  return 0; }; 
                 size_tr+=i; i=0; break;
                  }while(1);
@@ -387,7 +387,7 @@ if (ioctl(s, FIONBIO, &fl) &&
          size_recv=0; i=0; state=KEEP_WAIT; shutdown(fd,SHUT_RDWR);  i=0; break; };
             size_recv+=i;state==SOCK_READ; i=0;
                 
-             break; }while(1);cout<<"RD  "<<fd<<"  SZ "<<size_recv<<endl;
+             break; }while(1);/*cout<<"RD  "<<fd<<"  SZ "<<size_recv<<endl;*/
           return i;
         };
       
