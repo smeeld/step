@@ -148,12 +148,12 @@ void serv::send_header(conn* c){
                          epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);  continue; };   
                         
                             if(read_s(p)){
-                               queue_insert(s);
+                               queue_insert(s); continue;
                                      };
                            proc_thread(p);
 
                             if(write_s(p)){ 
-                                 queue_insert(s);
+                                 queue_insert(s); continue;
                                         };
                              continue;
                             }
