@@ -105,13 +105,23 @@ void serv::send_header(conn* c){
           };
          
  void serv::reactor(){
- int cur, s, i;
+ int cur, s, tm=-1, i;
  conn* p;
 
    while(1)
 {  
+ 
+  if(ques.empty()){ tm=-1; }
+    
+  else{
   
-  cur=epoll_wait(efd,events,512, -1);
+  s=ques.front(); ques.pop();
+   shutdown(s,SHUT_RDWR); tm=1;
+     };
+     
+          
+ 
+  cur=epoll_wait(efd,events,512, tm);
     
     for(i=0; i<cur; i++)
      { 
@@ -132,7 +142,7 @@ void serv::send_header(conn* c){
             if(s==sock){ 
                       
           if((s=accept(sock,(struct sockaddr*)&sockddr,&socklen))<0){  continue; };
-                             
+                          
               set_non_block(s);
                    
                     ev.data.fd=s;
@@ -148,47 +158,38 @@ void serv::send_header(conn* c){
                          epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);  continue; };   
                         
                             if(read_s(p)){
-                               queue_insert(s); continue;
-                                     };
+                                  ques.push(s);
+                                 continue; };
+     
                            proc_thread(p);
 
-                            if(write_s(p)){ 
-                                 queue_insert(s); continue;
-                                        };
+                            if(write_s(p)){
+                              ques.push(s); }; 
+
                              continue;
                             }
                     else {
                              p=conn_map[s].get();
                         if(pev->events & EPOLLIN){           
                               if(read_s(p)){
-                                     queue_insert(s); };
-                              if(p->state==SOCK_READ){ proc_thread(p);
-                                           if(write_s(p)){ 
-                                      queue_insert(s);
-                                            };        
-                                           };     
-                                        continue;
+                                 ques.push(s); continue; };
+                              proc_thread(p);
+
+                            if(write_s(p)){
+                              ques.push(s); };
+                                 continue;
                                     };
-                 if(pev->events & EPOLLOUT)
-                          { if(write_s(p)){ 
-                                 queue_insert(s); };
-                                  continue;
-                            
+
+                 if(pev->events & EPOLLOUT){
+                         if(write_s(p)){
+                          ques.push(s); };
+                          continue;  
                             };
                           };
                          };
                        };
                       };
                       
-                    
-
- inline void serv::queue_insert(int s){ 
-   
-     mt.lock();
-    ques.push(s);
-     mt.unlock();
-       return;
-        };
 
 int serv::cacher(const char* s, cache_t& ch){
  
@@ -230,7 +231,7 @@ if (ioctl(s, FIONBIO, &fl) &&
  int serv::write_s(conn* c){
    int i; 
            
-           if(c->state==SOCK_READ || c->state==KEEP_WAIT){   return 0; };
+           if(c->state==SOCK_READ){   return 0; };
 
          if(c->state==SOCK_HEADER){
                  
@@ -246,14 +247,14 @@ if (ioctl(s, FIONBIO, &fl) &&
          if((c->type)==0){
        do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){  errno=0; continue; };
-                  shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                              return 1; }; 
                 c->size_tr+=i; i=0; break;
                     }while(1);
                  };
     if(c->type==1){ 
         do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
-                shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                           return 1; }; 
                 c->size_tr+=i; i=0; break;
                  }while(1);
                 };
@@ -286,22 +287,5 @@ if (ioctl(s, FIONBIO, &fl) &&
              };
           return i;
         };
-  void serv::proc_queue(){
- conn_it it;
- int sock;
-  conn* s;
-    mt.lock();
-   if(!ques.empty()){
-       sock=ques.front();
-         ques.pop();
-       if((it=conn_map.find(sock))==conn_map.end()){ mt.unlock(); return; };
-        s=it->second.get();
-
-    if(s->keep_count==1){ if(s->state==SOCK_READ){ mt.unlock();return; };
-                      shutdown(s->fd,SHUT_RDWR);  }
-      else{  s->keep_count++;  ques.push(s->fd);  }; 
-           }; 
-       mt.unlock();
-    };
  
                                  

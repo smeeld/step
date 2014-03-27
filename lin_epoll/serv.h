@@ -134,7 +134,6 @@ void send_header(conn*);
  int que_round; 
  epv ev, *pev;
  epv events[512];
- inline void queue_insert(int);
   void set_non_block(const int);
 
   };
