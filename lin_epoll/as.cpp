@@ -105,7 +105,7 @@ void serv::send_header(conn* c){
           };
          
  void serv::reactor(){
- int cur, s, i, tmp, fl=-1;
+ int cur, s, i;
  conn* p;
 
    while(1)
