@@ -5,7 +5,7 @@ int serv::run;
  serv::serv(int s){
   sock=s;
  
- if((efd=epoll_create(65536))<0){  throw 1; };
+ if((efd=epoll_create(16384))<0){  throw 1; };
  
     
    ev.data.fd=sock;

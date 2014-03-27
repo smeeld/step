@@ -12,6 +12,7 @@ int list_sock;
   std::shared_ptr<serv> ser1;
   std::shared_ptr<serv> ser2;
 
+  conn* mas[2];
  sockaddr_in socket_s;
       socket_s.sin_family=AF_INET;
          socket_s.sin_addr.s_addr=INADDR_ANY;
@@ -73,27 +74,45 @@ dup(std);
  
 
  
-
+ i=0;
  try{
 
   ser1=std::make_shared<serv>(list_sock);
 
     }
   
- catch(std::bad_alloc& d){ exit(-1); }
-
+ catch(std::bad_alloc& d){ i++; }
+ catch(int c){ ser1.reset(); i++; };
+ 
 try{
 
   ser2=std::make_shared<serv>(list_sock);
 
     }
-  catch(std::bad_alloc& d){ exit(-1); };
- 
- while(serv::run){ 
-    ser1.get()->proc_queue();
-    ser2.get()->proc_queue();
-   usleep(1); };
+  catch(std::bad_alloc& d){ if(i){ exit(-1); }; }
+  catch(int c){ if(i){ exit(-1); }; ser2.reset(); i=2; }
 
+ while(serv::run){ 
+ 
+ switch(i){
+   case 0 :
+     ser1.get()->proc_queue(); 
+     ser2.get()->proc_queue();
+        break;
+  case 1 :
+ 
+     ser1.get()->proc_queue(); 
+        break;
+  case 2 : 
+
+  ser2.get()->proc_queue(); 
+        break;
+ 
+  default : break;
+  
+     };
+   usleep(1); 
   };
+};
      
 
