@@ -53,8 +53,6 @@ if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 2; };
       chmod("/var/run/ser.pid", S_IRUSR | S_IWUSR | S_IROTH | S_IRGRP);
       exit(0);
      };
-if((p=getpwnam("g"))==NULL){  exit(-1); };
- 
 
    setsid();
       chdir("/");
