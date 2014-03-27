@@ -89,7 +89,7 @@ try{
   ser2=std::make_shared<serv>(list_sock);
 
     }
-  catch(std::bad_alloc& d){ if(i){ exit(-1); }; }
+  catch(std::bad_alloc& d){ if(i){ exit(-1); }; i=2; }
   catch(int c){ if(i){ exit(-1); }; ser2.reset(); i=2; }
 
  while(serv::run){ 
@@ -101,11 +101,11 @@ try{
         break;
   case 1 :
  
-     ser1.get()->proc_queue(); 
+     ser2.get()->proc_queue(); 
         break;
   case 2 : 
 
-  ser2.get()->proc_queue(); 
+  ser1.get()->proc_queue(); 
         break;
  
   default : break;
