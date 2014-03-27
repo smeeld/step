@@ -13,6 +13,8 @@
 #include <string.h>
 #include <jpeglib.h>
 #include <setjmp.h>
+#define TP_WIN 1
+#define TP_TEX 2
 struct image{
 
  int w;

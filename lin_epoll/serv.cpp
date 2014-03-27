@@ -18,13 +18,26 @@ int list_sock;
          socket_s.sin_port=htons(80);
 
  int len=sizeof(struct sockaddr);
+  
+  try{
+  
+  if((p=getpwnam("g"))==NULL){ throw 1; };
+  
+if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 2; };
+  
+ if(bind(list_sock,(struct sockaddr*)&socket_s,len)<0){ throw 3; };
+    }
+  catch(int er){ 
  
- if((p=getpwnam("g"))==NULL){  exit(-1); };
-  
-if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0){  exit(-1);};
-  
- if(bind(list_sock,(struct sockaddr*)&socket_s,len)<0){  exit(-1); };
+              switch(er){
+
+               case 1 : std::cout<<" Not User named g please do this user"<<std::endl; exit(-1);
+               case 2 : std::cout<<" Not Create Socket"<<std::endl; exit(-1); 
+               case 3 : std::cout<<" Not Bind Socket"<<std::endl; close(list_sock); exit(-1); 
+               };
+             };
  i=1;
+  
  if (ioctl(list_sock, FIONBIO, &i) &&
 	    ((i = fcntl(list_sock, F_GETFL, 0)) < 0 ||
 	     fcntl(list_sock, F_SETFL, i | O_NONBLOCK) < 0)) {close(list_sock); exit(-1); };
