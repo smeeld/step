@@ -102,25 +102,23 @@ typedef conn_mp::iterator conn_it;
 
 class serv{
 public:
-serv(); 
 serv(int);
-
  ~serv();
-int sock;
- int efd;
- void reactor();
-int cacher(const char*, cache_t&);
+
  void proc_thread(const conn*);
  void proc_queue();
 static void sig_hand(int);
-static void* th(void*);
 static void sig_pipe(int n);
-static serv* server;
 static int run;
 private:
+int sock;
+ int efd;
+int cacher(const char*, cache_t&);
+ void reactor();
 void send_header(conn*);
  int read_s(conn*);
  int write_s(conn*);
+ static void* th(void*);
  int serv_count;
  cache_mp cache_map;
   conn_mp conn_map;

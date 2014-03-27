@@ -1,64 +1,11 @@
 #include <serv.h>
 
-serv* serv::server;
 int serv::run;
-int num;
-
- serv::serv(){
-    run=1;
-   int tmp=1;
-       sockddr.sin_family=AF_INET;
-         sockddr.sin_addr.s_addr=INADDR_ANY;
-         sockddr.sin_port=htons(80);
-
- length=sizeof(struct sockaddr);
- socklen=sizeof(struct sockaddr);
-  que_round=0;
-  
- if((sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 1; };
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(int));
- if(bind(sock,(struct sockaddr*)&sockddr,length)<0){  throw 2; };
-
-  set_non_block(sock);
-  
-  if((efd=epoll_create(65536))<0){ close(sock);  throw 3; };
- 
-    
-   ev.data.fd=sock;
-    ev.events=EPOLLIN;
- 
-epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
-  
-   ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
- listen(sock,1000);
- que_count=1;
-  que_round=0;
-  run=1;
-  server=this;
- 
- pthread_t pt;
- pthread_create(&pt,0,th,this);
-  };
-
 
  serv::serv(int s){
   sock=s;
-   /*int tmp=1;
-       sockddr.sin_family=AF_INET;
-         sockddr.sin_addr.s_addr=INADDR_ANY;
-         sockddr.sin_port=htons(80);
-
- length=sizeof(struct sockaddr);
- socklen=sizeof(struct sockaddr);
-  que_round=0;
-  
- if((sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 1; };
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(int));
- if(bind(sock,(struct sockaddr*)&sockddr,length)<0){  throw 2; };
-
-  set_non_block(sock);
-  */
-  if((efd=epoll_create(65536))<0){  throw 3; };
+ 
+ if((efd=epoll_create(65536))<0){  throw 1; };
  
     
    ev.data.fd=sock;
@@ -67,21 +14,12 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
 epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
- /*listen(sock,1000);*/
- que_count=1;
-  que_round=0;
-  run=1;
-  server=this;
- 
+ run=1; 
  pthread_t pt;
  pthread_create(&pt,0,th,this);
   };
  
- serv::~serv(){ 
-          /*
-                for_each(cache_map.begin(), cache_map.end(), [](pair<size_t,cache_t> ch){ delete[] ch.second.pointer; });
-                 for_each(conn_map.begin(), conn_map.end(), [](pair<int,conn*> ch){ delete ch.second; });cout<<"EXIT"<<endl;*/
-               }; 
+ serv::~serv(){}; 
 void serv::proc_thread(const conn* s){ 
  conn* cs=const_cast<conn*>(s);
  size_t sz;
@@ -93,16 +31,7 @@ void serv::proc_thread(const conn* s){
   
    int rsz;
   struct stat st;
- 
-/*
-     mt.lock(); 
-   if(ques.size()==0) {  mt.unlock(); continue; };
-     int ss=ques.front();ques.pop();
-   cs=conn_map[ss];if(cs==NULL){ cout<<"NULL  ==================  "<<ss<<"  SZ  "<<ques.size()<<endl; mt.unlock(); continue; };
-  
-   */
-    /*std::cout<<" QUEU  "<<cs->state<<" SOCK  "<<cs->fd<<"  SZZZ   "<<ques.size()<<std::endl;*/
-      
+       
    switch(cs->state){
     case SOCK_READ : error=0;
       pos=cs->buf_recv; rsz=cs->size_recv-1;
@@ -138,20 +67,8 @@ void serv::proc_thread(const conn* s){
                };
                   if(cs->state!=SOCK_WRITE){
                    send_header(cs); };
-                  /*ev.data.fd=cs->fd;
-                    ev.events=EPOLLET | EPOLLOUT | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
-          epoll_ctl(efd,EPOLL_CTL_MOD,cs->fd,&ev);*/
                         break;
         };
-         
-        
- /*     
-  case KEEP_WAIT : 
-    if(cs->keep_count==5){cout<<" DEL "<<cs->fd<<endl; 
-                      shutdown(cs->fd,SHUT_RDWR);  }
-      else{ cs->keep_count++; queue_insert(cs->fd); }; 
-            
-            break;*/
  default : break;
       };
      };
@@ -202,7 +119,7 @@ void serv::send_header(conn* c){
          
        if ((pev->events & EPOLLERR) || (pev->events & EPOLLHUP) && (pev->events & EPOLLRDHUP))
 	         { 
-	          /*std::cout<<"EXX"<<std::endl;*/
+	          
                  conn_map.erase(s);
            epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
               close(s);
@@ -261,7 +178,7 @@ void serv::send_header(conn* c){
                     
 
  inline void serv::queue_insert(int s){ 
-   /*cout<<"QUEUE INSERT "<<s<<endl;*/
+   
      mt.lock();
     ques.push(s);
      mt.unlock();
@@ -315,7 +232,7 @@ if (ioctl(s, FIONBIO, &fl) &&
           do{errno=0;  i=send(c->fd,c->header,c->header_len,0);   
 
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
-              std::cout<<"ERORRR HED "<<c->state<<std::endl;  
+               
                shutdown(c->fd,SHUT_RDWR);  return 0; }; 
                 c->state=SOCK_WRITE; i=0; break;
                     }while(1);
@@ -337,7 +254,7 @@ if (ioctl(s, FIONBIO, &fl) &&
                 };
              
           if(c->size_tr==c->buf_size){ if(c->type==1){ close(c->file_fd); };
-             c->size_recv=0; /* shutdown(fd,SHUT_RDWR); /std::cout<<"TRANSFERD "<<std::endl;*/ c->state=KEEP_WAIT;c->size_tr=0;i=1; };
+             c->size_recv=0; c->state=KEEP_WAIT;c->size_tr=0;i=1; };
 
               
            
@@ -357,10 +274,10 @@ if (ioctl(s, FIONBIO, &fl) &&
     do{errno=0; i=read(c->fd, c->buf_recv, 1024); 
         
        if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0;  continue; }; 
-         c->size_recv=0; i=0; c->state=KEEP_WAIT; /*shutdown(fd,SHUT_RDWR);*/  i=1; break; };
+         c->size_recv=0; i=0; c->state=KEEP_WAIT;  i=1; break; };
             c->size_recv+=i;c->state==SOCK_READ; i=0;
                 
-             break; }while(1); break;/*cout<<"RD  "<<fd<<"  SZ "<<size_recv<<endl;*/
+             break; }while(1); break;
              };
           return i;
         };
@@ -375,7 +292,7 @@ if (ioctl(s, FIONBIO, &fl) &&
        if((it=conn_map.find(sock))==conn_map.end()){ mt.unlock(); return; };
         s=it->second.get();
 
-    if(s->keep_count==1){/*std::cout<<" DEL "<<s->fd<<std::endl;*/ 
+    if(s->keep_count==1){
                       shutdown(s->fd,SHUT_RDWR);  }
       else{  s->keep_count++;  ques.push(s->fd);  }; 
            }; 
