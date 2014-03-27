@@ -24,9 +24,9 @@ extern int num;
 
  all() throw(): count(num),lim(num){
 
-      try { pointer_stack=new T*[sizeof(T*)*num];} catch(std::bad_alloc& a){ exit(-1); };
+       pointer_stack=new T*[sizeof(T*)*num]; 
   
-       try{ mas=new T[num]; }catch(std::bad_alloc& a){  exit(-1); };
+       try{ mas=new T[num]; }catch(std::bad_alloc& a){  delete[] pointer_stack; throw std::bad_alloc(); };
 
          for(int x=0;x<num;x++){ pointer_stack[x]= &mas[x]; } 
        };
