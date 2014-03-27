@@ -18,8 +18,7 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
  pthread_t pt;
  pthread_create(&pt,0,th,this);
   };
- 
- serv::~serv(){}; 
+
 inline void serv::proc_thread(const conn* s){ 
  conn* cs=const_cast<conn*>(s);
  size_t sz;
