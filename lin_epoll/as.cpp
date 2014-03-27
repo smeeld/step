@@ -168,7 +168,7 @@ void serv::send_header(conn* c){
                           { if(write_s(p)){ 
                                  queue_insert(s); };
                                   continue;
-                             };
+                            
                             };
                           };
                          };
