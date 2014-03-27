@@ -161,7 +161,12 @@ void serv::send_header(conn* c){
                              p=conn_map[s].get();
                         if(pev->events & EPOLLIN){           
                               if(read_s(p)){
-                                     queue_insert(s); };                  
+                                     queue_insert(s); };
+                              if(p->state==SOCK_READ){ proc_thread(p);
+                                           if(write_s(p)){ 
+                                      queue_insert(s);
+                                            };        
+                                           };     
                                         continue;
                                     };
                  if(pev->events & EPOLLOUT)
@@ -292,7 +297,7 @@ if (ioctl(s, FIONBIO, &fl) &&
        if((it=conn_map.find(sock))==conn_map.end()){ mt.unlock(); return; };
         s=it->second.get();
 
-    if(s->keep_count==1){
+    if(s->keep_count==1){ if(s->state==SOCK_READ){ mt.unlock();return; };
                       shutdown(s->fd,SHUT_RDWR);  }
       else{  s->keep_count++;  ques.push(s->fd);  }; 
            }; 
