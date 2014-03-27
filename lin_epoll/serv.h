@@ -133,7 +133,7 @@ void send_header(conn*);
  int alloc_sz;
  int que_round; 
  epv ev, *pev;
- epv events[512];
+ epv events[1024];
   void set_non_block(const int);
 
   };

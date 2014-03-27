@@ -5,7 +5,7 @@ int serv::run;
  serv::serv(int s){
   sock=s;
  
- if((efd=epoll_create(16384))<0){  throw 1; };
+ if((efd=epoll_create(1024))<0){  throw 1; };
  
     
    ev.data.fd=sock;
@@ -113,7 +113,7 @@ void serv::send_header(conn* c){
      
           
  
-  cur=epoll_wait(efd,events,512, tm);
+  cur=epoll_wait(efd,events,1024, tm);
     
     for(i=0; i<cur; i++)
      { 
