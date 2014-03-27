@@ -32,8 +32,6 @@ void serv::proc_thread(const conn* s){
    int rsz;
   struct stat st;
        
-   switch(cs->state){
-    case SOCK_READ : error=0;
       pos=cs->buf_recv; rsz=cs->size_recv-1;
     
      if(!strncmp(pos,hd::s14.c_str(),3)){
@@ -67,10 +65,8 @@ void serv::proc_thread(const conn* s){
                };
                   if(cs->state!=SOCK_WRITE){
                    send_header(cs); };
-                        break;
+    
         };
- default : break;
-      };
      };
   
 void serv::send_header(conn* c){
@@ -177,9 +173,9 @@ void serv::send_header(conn* c){
 
                             if(write_s(p)){
                               ques.push(s); };
+
                                  continue;
                                     };
-
                  if(pev->events & EPOLLOUT){
                          if(write_s(p)){
                           ques.push(s); };
@@ -231,7 +227,7 @@ if (ioctl(s, FIONBIO, &fl) &&
  int serv::write_s(conn* c){
    int i; 
            
-           if(c->state==SOCK_READ){   return 0; };
+           if(c->state==SOCK_READ || c->state==KEEP_WAIT){   return 0; };
 
          if(c->state==SOCK_HEADER){
                  
@@ -247,14 +243,14 @@ if (ioctl(s, FIONBIO, &fl) &&
          if((c->type)==0){
        do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){  errno=0; continue; };
-                              return 1; }; 
+                  shutdown(c->fd,SHUT_RDWR);  return 0; }; 
                 c->size_tr+=i; i=0; break;
                     }while(1);
                  };
     if(c->type==1){ 
         do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
-                           return 1; }; 
+                shutdown(c->fd,SHUT_RDWR);  return 0; }; 
                 c->size_tr+=i; i=0; break;
                  }while(1);
                 };
@@ -280,7 +276,7 @@ if (ioctl(s, FIONBIO, &fl) &&
     do{errno=0; i=read(c->fd, c->buf_recv, 1024); 
         
        if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0;  continue; }; 
-         c->size_recv=0; i=0; c->state=KEEP_WAIT;  i=1; break; };
+         c->size_recv=0; c->state=KEEP_WAIT;  i=1; break; };
             c->size_recv+=i;c->state==SOCK_READ; i=0;
                 
              break; }while(1); break;
