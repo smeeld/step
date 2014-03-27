@@ -20,7 +20,7 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   };
  
  serv::~serv(){}; 
-void serv::proc_thread(const conn* s){ 
+inline void serv::proc_thread(const conn* s){ 
  conn* cs=const_cast<conn*>(s);
  size_t sz;
   int error;
@@ -95,10 +95,7 @@ void serv::send_header(conn* c){
      
        
         c->state=SOCK_HEADER;
-         return;
-          
-          
-          };
+    };
          
  void serv::reactor(){
  int cur, s, tm=-1, i;
@@ -217,7 +214,6 @@ if(cache_map.insert(std::pair<size_t, cache_t>(sz,chc)).second==false){ return 3
 if (ioctl(s, FIONBIO, &fl) &&
 	    ((fl = fcntl(s, F_GETFL, 0)) < 0 ||
 	     fcntl(s, F_SETFL, fl | O_NONBLOCK) < 0)) {close(s); };
-      return;
  };
 
  void serv::sig_hand(int n){ serv::run=0; };
@@ -258,9 +254,7 @@ if (ioctl(s, FIONBIO, &fl) &&
           if(c->size_tr==c->buf_size){ if(c->type==1){ close(c->file_fd); };
              c->size_recv=0; c->state=KEEP_WAIT;c->size_tr=0;i=1; };
 
-              
-           
-    return i;
+       return i;
       };
 
  int serv::read_s(conn* c){ 
