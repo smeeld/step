@@ -80,14 +80,14 @@ dup(std);
 
     }
   
- catch(std::bad_alloc& d){}
+ catch(std::bad_alloc& d){ exit(-1); }
 
 try{
 
   ser2=std::make_shared<serv>(list_sock);
 
     }
-  catch(std::bad_alloc& d){};
+  catch(std::bad_alloc& d){ exit(-1); };
  
  while(serv::run){ 
     ser1.get()->proc_queue();
