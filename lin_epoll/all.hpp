@@ -33,22 +33,14 @@ extern int num;
         
           all(const all& s) throw():count(s.count) {
              pointer_stack=s.pointer_stack; mas=s.mas; };
-
-       template <class U>  all (const all<U>& s) throw():count(s.count){/*
-
-            static_cast<U**>(pointer_stack)=s.pointer_stack;
-  
-       static_cast<U*>(mas)=s.mas;
-
-       */  
-       };
+       template <class U>  all (const all<U>& s) throw():count(s.count){};
         
 
-       ~all() throw() { delete[] pointer_stack; delete[] mas; std::cout<<"CONT DELETED"<<std::endl; };
+       ~all() throw() { delete[] pointer_stack; delete[] mas; };
        size_t  max_size () const throw() { return 1; }
 
-   inline  pointer allocate (size_type n, const void* = 0) { std::cout<<"NUM=="<<count<<"  NN=="<<n<<"  SZ  "<<sizeof(T)<<std::endl;
-       pointer p; if((count-=n)>0){ p=pointer_stack[count];  }else{ p=NULL; };std::cout<<"YES"<<std::endl; return p; };
+   inline  pointer allocate (size_type n, const void* = 0) {
+       pointer p; if((count-=n)>0){ p=pointer_stack[count];  }else{ p=NULL; }; return p; };
 
     inline  void construct (pointer p, T& t) {  new (p) T(t); };
    
