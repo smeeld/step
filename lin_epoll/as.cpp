@@ -37,7 +37,7 @@ void serv::proc_thread(const conn* s){
       pos=cs->buf_recv; rsz=cs->size_recv-1;
     
      if(!strncmp(pos,hd::s14.c_str(),3)){
-      tmp=pos+3; i=0; pos+=(cs->size_tr-1);
+      tmp=pos+3; i=0; pos+=(cs->size_recv-1);
  try{
       while(i==0){ tmp++;
           
