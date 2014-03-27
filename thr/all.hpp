@@ -1,7 +1,5 @@
 #include <iostream>
 extern int num;
-
-using namespace std;
    template <class T>
    class all {
      public:
@@ -26,9 +24,9 @@ using namespace std;
 
  all() throw(): count(num),lim(num){
 
-      try { pointer_stack=new T*[sizeof(T*)*num];} catch(bad_alloc& a){ exit(-1); };
+      try { pointer_stack=new T*[sizeof(T*)*num];} catch(std::bad_alloc& a){ exit(-1); };
   
-       try{ mas=new T[num]; }catch(bad_alloc& a){  exit(-1); };
+       try{ mas=new T[num]; }catch(std::bad_alloc& a){  exit(-1); };
 
          for(int x=0;x<num;x++){ pointer_stack[x]= &mas[x]; } 
        };

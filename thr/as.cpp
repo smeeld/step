@@ -1,34 +1,5 @@
 #include <serv.h>
-struct headers{
- 
-const char* s0="HTTP/1.1 200 OK\r\n";
-const char* s1="Date: xxxxxxxxxxxxxxxxxxxxxxxx GMT\r\n";
-const char* s2="Server: MATRIX\r\n";
-const char* s3="Content-Type: %s; charset=utf-8\r\n";
-const char* s4="Content-Length: %d \r\n";
-const char* s5="Connection: keep-alive\r\n\r\n";
-const char* s6="Connection: close\r\n\r\n";
-const char* s7="HTTP/1.1";
-const char* s8="Server: MATRIX\r\n";
-const char* s9="Content-Type: ";
-const char* s10="Content-Length: ";
-const char* s11="Connection: ";
-const char* s12="keep-alive";
-const char* s13="Keep-Alive";
-const char* s14="GET";
-const char* s15="PUT";
-const char* s16="Host";
-const char* s17="Date: ";
-const char* s18="; charset=utf-8\r\n";
-const char* s19=" GMT\r\n";
-const char* s20="text/html";
-const char* s21="text/javascript";
-const char* s22="image/jpeg";
-const char* s23="image/gif";
-const char* err_s1="HTTP/1.1 404 Not Found\r\n";
-const char* err_s2="HTTP/1.1 500 Internal Server Error\r\n";
-const char* err_s3="HTTP/1.1 400 Bad Request\r\n";
-}hd;
+
 serv* serv::server;
 int serv::run;
 int num;
@@ -107,9 +78,9 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   };
  
  serv::~serv(){ 
-          
+          /*
                 for_each(cache_map.begin(), cache_map.end(), [](pair<size_t,cache_t> ch){ delete[] ch.second.pointer; });
-                 for_each(conn_map.begin(), conn_map.end(), [](pair<int,conn*> ch){ delete ch.second; });cout<<"EXIT"<<endl;
+                 for_each(conn_map.begin(), conn_map.end(), [](pair<int,conn*> ch){ delete ch.second; });cout<<"EXIT"<<endl;*/
                }; 
 void serv::proc_thread(const conn* s){ 
  conn* cs=const_cast<conn*>(s);
@@ -134,39 +105,39 @@ void serv::proc_thread(const conn* s){
       
    switch(cs->state){
     case SOCK_READ : error=0;
-      pos=cs->buf_recv; rsz=cs->size_recv;
+      pos=cs->buf_recv; rsz=cs->size_recv-1;
     
-     if(!strncmp(pos,hd.s14,3)){
-      tmp=pos+3; i=0;
+     if(!strncmp(pos,hd::s14.c_str(),3)){
+      tmp=pos+3; i=0; pos+=(cs->size_tr-1);
  try{
       while(i==0){ tmp++;
           
-       while(*(tmp+i)!=' '){  i++; if((pos+rsz)==(tmp+i)){ throw 1; }; }; };
+       while(*(tmp+i)!=' '){  if(pos==(tmp+i)){ throw 1; }; i++; }; };
        
         char s[i]; s[i]='\0';
-         copy(tmp, tmp+i, s);
+         std::copy(tmp, tmp+i, s);
           errno=0;
         i=stat(s,&st); if(i<0 || errno==ENOENT){ throw 2; };
           
-       if(st.st_size>10000){ cs->type=1;
+       if(st.st_size>100000){ cs->type=1;
           cs->buf_size=st.st_size;
          if((cs->file_fd=open(s,O_RDONLY))==0){ throw 2; };
               }
                else{ cs->type=0;
          if((i=cacher((const char*)s, ch))!=0){ throw i; };
-               cs->buf_send=ch.pointer; cs->buf_size=ch.size;
+               cs->buf_send=ch.pointer.get(); cs->buf_size=ch.size;
             
                };
            
          }catch(int er){ error=er; 
-         switch(error){ case 1 : cs->buf_send=const_cast<char*>(hd.err_s1); cs->buf_size=strlen(hd.err_s1); break;
-                    case 2 : cs->buf_send=const_cast<char*>(hd.err_s1); cs->buf_size=strlen(hd.err_s1); break;
-                    default : cs->buf_send=const_cast<char*>(hd.err_s3); cs->buf_size=strlen(hd.err_s3); break;
+         switch(error){ case 1 : cs->buf_send=const_cast<char*>(hd::err_s1.c_str()); cs->buf_size=hd::err_s1.size(); break;
+                        case 2 :    cs->buf_send=const_cast<char*>(hd::err_s1.c_str()); cs->buf_size=hd::err_s1.size(); break;
+                    default : cs->buf_send=const_cast<char*>(hd::err_s3.c_str()); cs->buf_size=hd::err_s3.size(); break;
                        
                  }; cs->state=SOCK_WRITE;               
                };
                   if(cs->state!=SOCK_WRITE){
-                   cs->send_header(); };
+                   send_header(cs); };
                   /*ev.data.fd=cs->fd;
                     ev.events=EPOLLET | EPOLLOUT | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
           epoll_ctl(efd,EPOLL_CTL_MOD,cs->fd,&ev);*/
@@ -185,7 +156,7 @@ void serv::proc_thread(const conn* s){
       };
      };
   
-void conn::send_header(){
+void serv::send_header(conn* c){
   
   int sz;
   char date[25];
@@ -194,23 +165,23 @@ void conn::send_header(){
    time(&tm_t);
   strncpy(date,asctime(localtime(&tm_t)),25);
   date[24]='\0';
-   ostringstream ost;
-   ost.rdbuf()->pubsetbuf(header, 1024);
+   std::ostringstream ost;
+   ost.rdbuf()->pubsetbuf(c->header, 1024);
    ost.seekp(0);
-      ost<<hd.s0
-      <<hd.s2
-      <<hd.s17
-      <<date<<hd.s19  
-      <<hd.s9<<hd.s20
-      <<hd.s18
-      <<hd.s10
-      <<buf_size<<"\r\n"
-    <<hd.s5;
+      ost<<hd::s0.c_str()
+      <<hd::s2.c_str()
+      <<hd::s17.c_str()
+      <<date<<hd::s19.c_str()  
+      <<hd::s9<<hd::s20.c_str()
+      <<hd::s18.c_str()
+      <<hd::s10.c_str()
+      <<c->buf_size<<"\r\n"
+    <<hd::s5.c_str();
  
-  header_len=static_cast<int>(ost.tellp());
+  c->header_len=static_cast<int>(ost.tellp());
      
-                 
-        state=SOCK_HEADER;
+       
+        c->state=SOCK_HEADER;
          return;
           
           
@@ -223,16 +194,16 @@ void conn::send_header(){
    while(1)
 {  
   
-  cur=epoll_wait(efd,events,512, 1);
-     
+  cur=epoll_wait(efd,events,512, -1);
+    
     for(i=0; i<cur; i++)
      { 
          pev=&events[i]; s=events[i].data.fd;
-          p=conn_map[s];
+         
        if ((pev->events & EPOLLERR) || (pev->events & EPOLLHUP) && (pev->events & EPOLLRDHUP))
 	         { 
-	           delete p;
-                 mt.lock();conn_map.erase(s);mt.unlock();
+	          /*std::cout<<"EXX"<<std::endl;*/
+                 conn_map.erase(s);
            epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
               close(s);
                  
@@ -248,38 +219,36 @@ void conn::send_header(){
               set_non_block(s);
                    
                     ev.data.fd=s;
-                 /* cout<< "NEW  "<<s<<endl;/
-                  ev.events=EPOLLIN | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;*/
+                 
                   if(epoll_ctl(efd,EPOLL_CTL_ADD,s,&ev)<0){ close(s); continue; };
                    
-                     try{  p=new conn(s); }catch(std::bad_alloc& g){
-                        epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);  continue; }; 
-                                     
-                       pair<conn_it,bool> it=conn_map.insert(pair<int,conn*>(s,p));
-                                    
-                       
-                        if(it.second==false){delete p; conn_map.erase(s);
-                        epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s); continue; };
-                              
-                            if(p->read_s()){
+                     try{ 
+                           p=new conn(s);        
+                       std::pair<conn_it,bool> it=conn_map.insert(std::pair<int, std::shared_ptr<conn> >(s, std::shared_ptr<conn>(p)));
+                                
+                        if(it.second==false){  throw std::bad_alloc(); }; }
+                       catch(std::bad_alloc& g){ conn_map.erase(s);  
+                         epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);  continue; };   
+                        
+                            if(read_s(p)){
                                queue_insert(s);
                                      };
                            proc_thread(p);
 
-                            if(p->write_s()){ 
+                            if(write_s(p)){ 
                                  queue_insert(s);
                                         };
                              continue;
                             }
                     else {
-                     
+                             p=conn_map[s].get();
                         if(pev->events & EPOLLIN){           
-                              if(p->read_s()){
+                              if(read_s(p)){
                                      queue_insert(s); };                  
                                         continue;
                                     };
                  if(pev->events & EPOLLOUT)
-                          { if(p->write_s()){ 
+                          { if(write_s(p)){ 
                                  queue_insert(s);
                                   continue;
                              };
@@ -312,8 +281,8 @@ int serv::cacher(const char* s, cache_t& ch){
            ifs.seekg (0, ifs.end);
            len = ifs.tellg();
            ifs.seekg (0, ifs.beg);
-          try { chc.pointer=new char[len]; }catch(std::bad_alloc& b){ ifs.close(); return 2; };
-       ifs.read(chc.pointer, len);
+          try { chc.pointer=std::shared_ptr<char>(new char[len]); }catch(std::bad_alloc& b){ ifs.close(); return 2; };
+       ifs.read(chc.pointer.get(), len);
       ifs.close();
     chc.size=len;
 if(cache_map.insert(std::pair<size_t, cache_t>(sz,chc)).second==false){ return 3; };
@@ -333,62 +302,84 @@ if (ioctl(s, FIONBIO, &fl) &&
  };
 
  void serv::sig_hand(int n){ serv::run=0; };
- void serv::sig_pipe(int n){ cout<<"PIPEW"<<endl;  };
+ void serv::sig_pipe(int n){};
  void* serv::th(void* a) { ((serv*)a)->reactor(); return NULL; };
               
- int conn::write_s(){
+ int serv::write_s(conn* c){
    int i; 
            
-           if(state==SOCK_READ || state==KEEP_WAIT){   return 0; };
+           if(c->state==SOCK_READ || c->state==KEEP_WAIT){   return 0; };
 
-           
-         if(state==SOCK_HEADER){
+         if(c->state==SOCK_HEADER){
                  
-          do{errno=0;  send(fd,header,header_len,0);   
+          do{errno=0;  i=send(c->fd,c->header,c->header_len,0);   
 
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
-                
-               shutdown(fd,SHUT_RDWR);  return 0; }; 
-                state=SOCK_WRITE; i=0; break;
+              std::cout<<"ERORRR HED "<<c->state<<std::endl;  
+               shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                c->state=SOCK_WRITE; i=0; break;
                     }while(1);
                   };
       
-         if(type==0){
-       do{ errno=0; i=write(fd, buf_send+size_tr, buf_size-size_tr);
+         if((c->type)==0){
+       do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){  errno=0; continue; };
-                  shutdown(fd,SHUT_RDWR);  return 0; }; 
-                size_tr+=i; i=0; break;
+                  shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                c->size_tr+=i; i=0; break;
                     }while(1);
                  };
-    if(type==1){ 
-        do{errno=0; i=sendfile(fd, file_fd, 0, buf_size);
+    if(c->type==1){ 
+        do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
-                shutdown(fd,SHUT_RDWR);  return 0; }; 
-                size_tr+=i; i=0; break;
+                shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                c->size_tr+=i; i=0; break;
                  }while(1);
                 };
              
-          if(size_tr==buf_size){ if(type==1){ close(file_fd); };
-             size_recv=0;  shutdown(fd,SHUT_RDWR); state=KEEP_WAIT; i=0;/*cout<<"WR TR  "<<fd<<endl;*/size_tr=0; };
+          if(c->size_tr==c->buf_size){ if(c->type==1){ close(c->file_fd); };
+             c->size_recv=0; /* shutdown(fd,SHUT_RDWR); /std::cout<<"TRANSFERD "<<std::endl;*/ c->state=KEEP_WAIT;c->size_tr=0;i=1; };
 
               
            
     return i;
       };
 
- int conn::read_s(){ 
+ int serv::read_s(conn* c){ 
    int i;
          
-      
-       if(state==SOCK_WRITE){ return 0; };
-    do{errno=0; i=read(fd, buf_recv, 1024); 
+      switch(c->state){
+       case SOCK_WRITE : i=0; break;
+
+       case KEEP_WAIT : c->state=SOCK_READ;
+       
+
+         default :
+    do{errno=0; i=read(c->fd, c->buf_recv, 1024); 
         
        if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0;  continue; }; 
-         size_recv=0; i=0; state=KEEP_WAIT; shutdown(fd,SHUT_RDWR);  i=0; break; };
-            size_recv+=i;state==SOCK_READ; i=0;
+         c->size_recv=0; i=0; c->state=KEEP_WAIT; /*shutdown(fd,SHUT_RDWR);*/  i=1; break; };
+            c->size_recv+=i;c->state==SOCK_READ; i=0;
                 
-             break; }while(1);/*cout<<"RD  "<<fd<<"  SZ "<<size_recv<<endl;*/
+             break; }while(1); break;/*cout<<"RD  "<<fd<<"  SZ "<<size_recv<<endl;*/
+             };
           return i;
         };
-      
+  void serv::proc_queue(){
+ conn_it it;
+ int sock;
+  conn* s;
+    mt.lock();
+   if(!ques.empty()){
+       sock=ques.front();
+         ques.pop();
+       if((it=conn_map.find(sock))==conn_map.end()){ mt.unlock(); return; };
+        s=it->second.get();
+
+    if(s->keep_count==1){/*std::cout<<" DEL "<<s->fd<<std::endl;*/ 
+                      shutdown(s->fd,SHUT_RDWR);  }
+      else{  s->keep_count++;  ques.push(s->fd);  }; 
+           }; 
+       mt.unlock();
+    };
+ 
                                  

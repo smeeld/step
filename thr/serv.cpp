@@ -10,11 +10,12 @@ num=100000;
  
  if((p=getpwnam("g"))==NULL){  exit(-1); };
  
-  serv* run, *run2;
+  std::shared_ptr<serv> ser1;
+  std::shared_ptr<serv> ser2;
 
  try{
 
-  run=new serv();
+  ser1=std::make_shared<serv>();
 
     }
   catch(int c){ int s=c;  
@@ -26,7 +27,15 @@ num=100000;
             }; 
  exit(-1); }
  
- catch(bad_alloc& d){ std::cout<<"Error MEmory"<<std::endl; exit(-1); }
+ catch(std::bad_alloc& d){ std::cout<<"Error MEmory"<<std::endl; exit(-1); }
+
+try{
+
+  ser2=std::make_shared<serv>(ser1->sock);
+
+    }
+  catch(std::bad_alloc& d){ std::cout<<"Error MEmory"<<std::endl; exit(-1); }
+ 
  /*
   try{
   
@@ -59,9 +68,11 @@ dup(std);
  signal(SIGTERM, serv::sig_hand );
  signal(SIGPIPE, SIG_IGN );
  
- while(serv::run){ sleep(1); };
+ while(serv::run){ 
+    ser1.get()->proc_queue();
+    ser2.get()->proc_queue();
+   usleep(1); };
 
- delete run;
   };
      
 
