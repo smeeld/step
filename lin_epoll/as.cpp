@@ -230,7 +230,7 @@ if (ioctl(s, FIONBIO, &fl) &&
 
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
                
-               shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                         return 1; }; 
                 c->state=SOCK_WRITE; i=0; break;
                     }while(1);
                   };
@@ -238,14 +238,14 @@ if (ioctl(s, FIONBIO, &fl) &&
          if((c->type)==0){
        do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){  errno=0; continue; };
-                  shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                         return 1; }; 
                 c->size_tr+=i; i=0; break;
                     }while(1);
                  };
     if(c->type==1){ 
         do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
-                shutdown(c->fd,SHUT_RDWR);  return 0; }; 
+                      return 1; }; 
                 c->size_tr+=i; i=0; break;
                  }while(1);
                 };

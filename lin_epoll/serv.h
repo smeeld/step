@@ -103,7 +103,7 @@ typedef conn_mp::iterator conn_it;
 class serv{
 public:
 serv(int);
- ~serv();
+ ~serv(){};
 
  void proc_thread(const conn*);
  void proc_queue();
