@@ -32,7 +32,7 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
   if(!ques.empty()){ 
     
-  p=ques.front(); ques.pop();std::cout<<"SHUTDWN "<<std::endl;
+  p=ques.front(); ques.pop();
    shutdown(p->fd,SHUT_RDWR); p->state=REQ_WAIT; tm=1;
      
    };
