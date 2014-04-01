@@ -74,8 +74,8 @@ void serv::send_header(conn* c){
     <<hd::s5.c_str();
  
   c->header_len=static_cast<int>(ost.tellp());
-   c->state=REQ_HEAD;
-     
+
     };
+
   void* serv::th(void* a) { ((serv*)a)->handler(); return NULL; };        
 
