@@ -1,7 +1,7 @@
 #include <serv.h>
   
 
- inline int serv::handler(){ 
+  int serv::handler(){ 
  size_t sz;
   int error;
   conn* cs;

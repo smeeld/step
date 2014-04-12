@@ -64,7 +64,7 @@ in pos;
    m[i]=random();
     };
 
- srt(num);
+ sort(num);
  
 for(i=0;i<out;i++)
  {
