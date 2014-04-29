@@ -86,8 +86,8 @@ if(p->state==REQ_READ){ read_s(p); }else{
                            p=new conn(s);        
                        std::pair<conn_it,bool> it=conn_map.insert(std::pair<int, std::shared_ptr<conn> >(s, std::shared_ptr<conn>(p)));
                                 
-                        if(it.second==false){  throw std::bad_alloc(); }; }
-                       catch(std::bad_alloc& g){ conn_map.erase(s);  
+                        if(it.second==false){  delete p; throw std::bad_alloc(); }; }
+                       catch(std::bad_alloc& g){  
                          epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);
                           };   
                         
