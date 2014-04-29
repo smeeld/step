@@ -1,7 +1,5 @@
 #include <iostream>
 #include <string.h>
-#include <stdio.h>
-
 typedef uint8_t in;
 
 class Tree{
@@ -53,7 +51,7 @@ Tree::~Tree(){
    while(prev){
    
    ptr=prev->next;
-printf("DELETED %s\n", prev->str);
+
     delete [] prev->char_ptr;
   
    prev=ptr;
@@ -107,9 +105,9 @@ if(((0xff & *s)>>4)==0xd){ code=2; }else{ code=1; };
  };
   
  ptr=list[mid];
-printf("SEA %d\n",mid);
+
  while(ptr){  
-  printf("SEA %d\n",mid);
+ 
    if(!strcmp(s, ptr->str)){ return ptr->str; };
 
     ptr=ptr->next;
@@ -121,7 +119,7 @@ printf("SEA %d\n",mid);
  } 
 char* Tree::search(const char* s){
   
-   return search(s, strlen(s);
+   return search(s, strlen(s));
  
  };
  
@@ -151,7 +149,7 @@ if(((0xff & *s)>>4)==0xd){ code=2; }else{ code=1; };
 
 while(ptr){ 
  
-  if(!strcmp(s, ptr->str)){ std::cout<<"YES ITS\n";return ptr->str; };
+  if(!strcmp(s, ptr->str)){ return ptr->str; };
   prev=ptr;
   ptr=ptr->next; 
 
@@ -164,13 +162,12 @@ while(ptr){
    }catch(std::bad_alloc& c){ return NULL; }; 
 
   ptr=reinterpret_cast<pointer*>(sp); 
- if(prev){ prev->next=ptr; printf("NEXT\n");}
+ if(prev){ prev->next=ptr; }
  else{ list[mid]=ptr; };
   ptr->str=sp+sizeof(pointer);
   ptr->char_ptr=sp;
   ptr->next=NULL;
   strcpy(ptr->str, s);
-printf("INSERTER OKK %s\n",ptr->str);
  return ptr->str;
 
  };
@@ -214,8 +211,8 @@ do{
  
  prev->next=ptr->next;
 if(ptr==list[mid]){ list[mid]=ptr->next; };
-printf("ERASE %s\n", ptr->str);
+
  delete [] ptr->char_ptr;
 
  };
-
+int main(){ std::cout<<"OK\n"; };
