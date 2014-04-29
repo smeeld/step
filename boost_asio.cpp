@@ -99,12 +99,13 @@ int serv::check_cache(const char* s, cache& ch)
          fs.seekg(0,fs.beg);
           try{
          ch.cache=new char[size];
-          }catch(std::bad_alloc& a){ return 2; };
+          }catch(std::bad_alloc& a){ fs.close(); return 2; };
  do{
        fs.read(ch.cache,size);
       }while(!fs.eof());
        ch.size=size;
        cache_map.insert(pair<string,cache>(string(s),ch));
+       fs.close();
        return 0;
      };
     };
