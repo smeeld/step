@@ -1,65 +1,43 @@
 #include <iostream>
-#include <vector>
-#include <algorithm>
-#include <iterator>
-#include <random>
-#include <chrono>
-using namespace std;
-int pos;
-vector<int> m;
-  inline int part(int len, int p){
-  int l=0;
-  int r=len;
-     int mid=m[pos+p];
+#include <string.h>
 
-     while(l!=r){
+template<typename Pos, typename Cmp> 
+  inline Pos prt(Pos fr, Pos md, Pos lt, Cmp cmp){
+   
+     while(lt!=fr){
 
-     while(mid>m[pos+l]){ l++; if(l==r){ return l;}; };
+     while(cmp(*fr, *md)){ ++fr; if(lt==fr){ return fr; }; };
 
+        do{ --lt; if(lt==fr){ return fr; }; }while(cmp(*md, *lt));
 
-        do{ r--; if(l==r){ return l;}; }while(m[pos+r]>mid || m[pos+r]==mid);
-
-           swap(m[pos+l],m[pos+r]);
-     l++;
+         std::swap(*fr, *lt);
+     ++fr;
     };
-  return l;
+  return fr;
   };
 
-
- void srt(int len){
-
-   int j;
-   int l;
-
-
-   switch(len){
-  case 2 : if(m[pos+1]<m[pos]){ swap(m[pos],m[pos+1]); }; pos+=2; return;
-
-  case 1 : pos++; return;
-
-  default :
-         l=0; j=0;
-   while(l==0){ if(j==len){ pos+=len; return; };
-
-
-              l=part(len,j); j++;
-       }; break;
-    };
-
-  srt(l);
-   srt(len-l);
- return;
- };
-int main(int arg, char * s[]){
+template<typename Pos, typename  Cmp> 
   
- int num=stoi(s[1]);
- minstd_rand0 gen(chrono::system_clock::now().time_since_epoch().count());
+inline  void sort(Pos pt, Pos pm, Cmp cmp){
+  
+   Pos tmp, m;
+  if((pt+1)==pm){ 
+   if( cmp( *pm , *pt) ){  std::swap(*pt, *pm); }; return; }; 
+  
+  if(pt==pm)  return;
 
-   m.resize(num);
-   generate(m.begin(), m.end(), gen);
-  pos=0;
-   srt(num);
+         m=pt;  
+        tmp=pt;
+       
+   while(tmp==pt){ if(m==pm){  return; };
+         
+     tmp=prt(pt, m++, pm, cmp); 
+       
+      }; 
+  
+      sort(pt, tmp, cmp);
+      sort(tmp, pm, cmp);
 
- for_each(m.begin() ,m.begin()+stoi(string(s[2])), [](int i){ cout<<"NUM=="<<i<<endl; });
- 
    };
+ 
+
