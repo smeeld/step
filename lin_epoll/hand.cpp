@@ -45,7 +45,7 @@
                  }; cs->buf_size=0; cs->buf_send=NULL;               
                };
                if(error==0){ send_header(cs); };
-                   cs->state=REQ_WRITE;
+                   cs->state=REQ_HEAD;
            }; mt.lock(); rques.push(cs); mt.unlock(); 
          };
        };

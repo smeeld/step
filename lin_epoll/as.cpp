@@ -167,14 +167,17 @@ if (ioctl(s, FIONBIO, &fl) &&
            if(c->state==REQ_READ || c->state==REQ_WAIT){   return 0; };
  
            if(c->keep){ shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT; return 0; };
-                         
+                     
+           if(c->state==REQ_HEAD){
+    
           do{errno=0;  i=send(c->fd,c->header,c->header_len,0);   
 
            if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
                shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT;
                          return 0; }; 
-                 break;
+                 break; c->state=REQ_WRITE;
                     }while(1);
+                  }
       
          if((c->type)==0){
        do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
