@@ -1,10 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <unordered_set>
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-
+#include <serv.h>
 using namespace std;
 using boost::asio::ip::tcp;
 typedef struct _cache{
@@ -17,7 +11,7 @@ char* cache;
 
 class conn;
 class serv
-/*: private boost::noncopyable*/
+: private boost::noncopyable
 {
 public:
 serv();
@@ -25,26 +19,28 @@ serv();
 
 boost::asio::io_service io;
 tcp::acceptor accept;
-tcp::socket sock;
 unordered_map<string, cache> cache_map;
 int check_cache(const char*,cache&);
-unordered_set<class conn*> conn_mas;
-void start(void);
+std::set<class conn*> conn_mas;
+void start(class conn*);
 static void sig_hand(int);
-static  serv* serv_ptr;
+static class serv* serv_ptr;
 };
   class conn{
 public:
-conn( serv*);
-~conn();
+conn(class serv&);
+~conn(){ 
+ 
+ sock.close(); server.conn_mas.erase(server.conn_mas.find(this));
+  
+  };
 tcp::socket sock;
-void start(const boost::system::error_code&);
-private:
 char buf[64];
  size_t count;
  serv* server;
   int pos;
-
+void read_handler(const boost::system::error_code&);
+private:
 char* read_buf[1024];
 boost::asio::streambuf outs;
 cache ch;
@@ -54,16 +50,20 @@ void write_handler(const boost::system::error_code&,std::size_t);
 void writer(const boost::system::error_code&,std::size_t);
 size_t header;
  }; 
+conn::conn( serv* serv):
+sock(serv.io),
+server(serv)
+{ server.conn_mas.insert(this);
+  tr_count=0;
+   };
 serv::serv():
 io(),
-accept(io, tcp::endpoint(boost::asio::ip::address::from_string("10.10.10.1"),80), tcp::acceptor::reuse_address(true)),
-sock(io)
+accept(io,tcp::endpoint(boost::asio::ip::address::from_string("10.10.10.1"),80),tcp::acceptor::reuse_address(true))
 { serv_ptr=this; signal(SIGINT, sig_hand);
-
   signal(SIGTERM, sig_hand); };
 serv::~serv(){ int i;
              unordered_map<string, cache>::iterator it=cache_map.begin();
-              unordered_set<conn*>::iterator cit=conn_mas.begin();
+              set<class conn*>::iterator cit=conn_mas.begin();
               while(it!=cache_map.end()){ 
                                 free(it->second.cache);
                                         it++; 
@@ -72,20 +72,14 @@ serv::~serv(){ int i;
          };
 void serv::start(){
  
- conn* p=NULL;
+class conn* c;
 
-try{
+ try{ c=new conn(this); };
+   
+accept.async_accept(c->sock,boost::bind(&conn::read_handler, c, _1));
 
-  p=new conn(this);
- 
-   }catch(std::bad_alloc& c){ return; };
-
- if(!conn_mas.insert(p).second){ p->sock.close(); delete p; };
-
- accept.async_accept(p->sock, boost::bind(&conn::start, p, _1));  
-     
   };
-int serv::check_cache(const char* s, cache& ch)
+int serv::check_cache(const char* s,cache& ch)
  {unordered_map<string,cache>::iterator it;
   
    if((it=cache_map.find(string(s)))!=cache_map.end())
@@ -108,31 +102,7 @@ int serv::check_cache(const char* s, cache& ch)
        return 0;
      };
     };
-
  void serv::sig_hand(int s){ serv_ptr->io.stop(); };
-
-conn::conn( serv* serv):
-sock(serv->io),
-server(serv)
-{ 
-  tr_count=0;
-   };
-
-conn::~conn(){ 
- 
- sock.close(); server->conn_mas.erase(server->conn_mas.find(this));
-  
-  };
-
- void conn::start(const boost::system::error_code& er){
-
- if(er){
- sock.close(); return;
-};
-
-  sock.async_read_some(boost::asio::buffer(read_buf, 1024), boost::bind(&conn::write_handler, this, _1, _2));
- server->start();
-  };
 
 void conn::writer(const boost::system::error_code& er,std::size_t tr){
    
@@ -143,10 +113,21 @@ void conn::writer(const boost::system::error_code& er,std::size_t tr){
     { 
       size_t s=tr_count-header;
        
-  boost::asio::async_write(sock, boost::asio::buffer(ch.cache+s, ch.size-s),boost::bind(&conn::writer,this,_1, _2));
+  boost::asio::async_write(sock,boost::asio::buffer(ch.cache+s, ch.size-s),boost::bind(&conn::writer,this,_1, _2));
       };
      };
 
+void conn::read_handler(const boost::system::error_code& er)
+{
+if(er){
+   delete this;
+      };
+ sock.async_read_some(boost::asio::buffer(read_buf, 1024),boost::bind(&conn::write_handler,this, _1, _2));
+ try{ server.start(new conn(server)); }catch(std::bad_alloc& e)
+         { sleep(2); try{ server.start(new conn(server)); }catch(std::bad_alloc& e){ server.sig_hand(0); }; }; 
+  
+  
+};
   void conn::write_handler(const boost::system::error_code& er, std::size_t tr)
  { int i;
   do{
@@ -158,7 +139,7 @@ void conn::writer(const boost::system::error_code& er,std::size_t tr){
    std::string str((const char*)read_buf);
    std::string name(str.substr(4,str.find(' ', 5)-4));
    if(!str.compare(0,3,"GET")){  
-             if((i=server->check_cache((const char*)name.c_str(),ch))!=0){
+             if((i=server.check_cache((const char*)name.c_str(),ch))!=0){
                   
                 ch.size=errors[i-1].size();
                ch.cache=(char*)errors[i-1].c_str();
@@ -189,6 +170,6 @@ int main(){
 
  serv ser;
 
-  ser.start();
+  ser.start(new conn(ser));
   ser.io.run();
  };
