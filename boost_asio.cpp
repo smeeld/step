@@ -17,7 +17,7 @@ char* cache;
 
 class conn;
 class serv
-/*: private boost::noncopyable*/
+
 {
 public:
 serv();
