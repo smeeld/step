@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sstream>
 #include <omp.h>
 #include <vector>
 #include <queue>
@@ -60,21 +59,11 @@ void reactor::step(void){
  uint8_t i;
  uint64_t val, tmp;
  mp::iterator it;
-
-char buf[21]; buf[20]='\0';
-
-std::istringstream ist;
-
-ist.rdbuf()->pubsetbuf(buf, 20);
-
 std::fstream f("storage.file", std::fstream::in);
 
 if(!f.good()){ std::cout<<"Can't read storage file\n"; run=0; this->~reactor(); exit(-1); };
 
 while(!f.eof()){
-
- ist.rdbuf()->pubseekpos(0); 
-  f.getline(buf,20);
 
 /*
   while(!std::cin.eof() && std::cin.good()){
@@ -84,7 +73,8 @@ while(!f.eof()){
  
   if(std::cin.fail()) break; 
 */
-  ist>>val;
+  f >> val;
+if(f.fail()) break; 
   omp_set_lock(&mt);
 
  que.push(val);

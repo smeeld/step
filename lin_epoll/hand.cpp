@@ -25,11 +25,11 @@
      if(cs->request.method==HTTP_GET){
       try{
           errno=0;
-        i=stat(tmp, &st); if(i<0 || errno==ENOENT){ throw 2; };
+        i=stat(tmp, &st); if(i<0 || errno==ENOENT){  throw 1; };
           
        if(st.st_size>100000){ cs->type=1;
           cs->buf_size=st.st_size;
-         if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 2; };
+         if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
               }
                else{ cs->type=0;
          if((i=cacher(tmp, ch))!=0){ throw i; };
@@ -38,9 +38,9 @@
                };
            
          }catch(int er){ error=er; 
-         switch(error){ case 1 :  hd::err_s2.copy(cs->header, hd::err_s2.size()); cs->header_len=hd::err_s2.size(); break;
-                        case 2 :     hd::err_s1.copy(cs->header, hd::err_s1.size()); cs->header_len=hd::err_s1.size(); break;
-                    default : hd::err_s3.copy(cs->header, hd::err_s3.size()); cs->header_len=hd::err_s3.size(); break;
+         switch(error){ case 1 :  hd::err_s1.copy(cs->header, hd::err_s1.size()); cs->header_len=hd::err_s1.size(); break;
+                        case 2 :  cs->type=1; cs->buf_size=st.st_size;  error=0; break;
+                   
                     
                  }; cs->buf_size=0; cs->buf_send=NULL;               
                };

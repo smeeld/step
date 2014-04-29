@@ -157,7 +157,7 @@ typedef conn_mp::iterator conn_it;
 
 class serv{
 public:
-serv(int);
+serv(int) throw();
  ~serv(){};
  void reactor();
 static void sig_hand(int);
@@ -167,7 +167,7 @@ private:
 int sock;
  int efd;
 int cacher(const char*, cache_t&);
- int pass_hand(const conn*);
+ void pass_hand(const conn*);
 void send_header(conn*);
  int read_s(conn*);
  int write_s(conn*);

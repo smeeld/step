@@ -2,7 +2,7 @@
 
 int serv::run;
 
- serv::serv(int s){
+ serv::serv(int s) throw() {
   sock=s;
  
  if((efd=epoll_create(1024))<0){  throw 1; };
@@ -22,7 +22,8 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
 
  void serv::reactor(){
 
- int cur, s, tm=-1, i;
+ int cur, s, i;
+ uint8_t tm;
  conn* p;
 
    while(run)
@@ -87,17 +88,9 @@ if(p->state==REQ_READ){ read_s(p); }else{
                                 
                         if(it.second==false){  throw std::bad_alloc(); }; }
                        catch(std::bad_alloc& g){ conn_map.erase(s);  
-                         epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);  continue; };   
+                         epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);
+                          };   
                         
-                        
-                               if(read_s(p)){
-                                   continue; };
-     
-                        if(req_gen(p)){
-                                  ques.push(p); continue; };
-
-                        pass_hand(p);
-                             
                            continue;
                             }
                     else {
@@ -113,8 +106,7 @@ if(p->state==REQ_READ){ read_s(p); }else{
                                  if(req_gen(p)){
                                   ques.push(p); continue; };
                                  
-                            if(pass_hand(p)){
-                                  ques.push(p); }; 
+                            pass_hand(p);
                         
                                 continue;
                                     };
@@ -149,7 +141,7 @@ int serv::cacher(const char* s, cache_t& ch){
        ifs.read(chc.pointer.get(), len);
       ifs.close();
     chc.size=len;
-if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ return 3; };
+if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ return 2; };
    };
   ch.pointer=chc.pointer; ch.size=chc.size;
 
@@ -208,13 +200,12 @@ if (ioctl(s, FIONBIO, &fl) &&
                
               c->size_recv=0; c->state=REQ_WAIT;c->size_tr=0; i=1; }else{ shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT; i=0; };
                  };
-
        return i;
       };
 
  int serv::read_s(conn* c){ 
    int i;
-         
+        
       if(c->state==REQ_WRITE){ return 1; };
 
      if(c->keep){ shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT; return 1; };
@@ -368,7 +359,7 @@ switch(sp->state){
  };
  return 0;
     };
-inline int serv::pass_hand(const conn* c){
+inline void serv::pass_hand(const conn* c){
 
  conn* s=const_cast<conn*>(c);
    
@@ -378,5 +369,5 @@ inline int serv::pass_hand(const conn* c){
  hques.push(s);
   mt.unlock();
 
- return 0; };
+  };
   
