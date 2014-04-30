@@ -27,7 +27,7 @@
 #include <time.h>
 #include <all.hpp>
 #include <functional>
-#include <pthread.h>
+#include <omp.h>
 #include <mutex>
 #include <string.h>
 #define REQ_HEAD 1
@@ -163,7 +163,7 @@ serv(int);
  void reactor();
 static void sig_hand(int);
 static void sig_pipe(int n);
-static int run;
+static uint8_t run;
 private:
 int sock;
  int efd;
@@ -173,7 +173,8 @@ void send_header(conn*);
  int read_s(conn*);
  int write_s(conn*);
  int handler();
- static void* th(void*);
+ uint8_t starter;
+  void th(void);
  int serv_count;
  cache_mp cache_map;
   conn_mp conn_map;
@@ -181,9 +182,10 @@ void send_header(conn*);
  std::queue<conn*> ques;
  std::queue<conn*> hques;
  std::queue<conn*> rques;
- std::mutex mt;
+ omp_lock_t mt, mtc;
  struct sockaddr_in sockddr;
- int length;
+ int lenght;
+ uint8_t tm;
  socklen_t socklen;
  epv ev, *pev;
  epv events[1024];

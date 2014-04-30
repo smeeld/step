@@ -1,6 +1,6 @@
 #include <serv.h>
 
-int serv::run;
+uint8_t serv::run;
 
  serv::serv(int s) {
   sock=s;
@@ -14,12 +14,14 @@ int serv::run;
 epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
- run=1;
- pthread_t pt;
- pthread_create(&pt,0, th, this); 
-
+ run=1; tm=-1; starter=0;
+ 
+#pragma omp parallel
+{
+th();
   };
 
+ }
  void serv::reactor(){
 
  int cur, s, i;
@@ -28,8 +30,6 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
 
    while(run)
 {  
-  tm=-1;
- 
   
   if(!ques.empty()){ 
     
@@ -37,7 +37,7 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
    shutdown(p->fd,SHUT_RDWR); p->state=REQ_WAIT; tm=1;
      
    };
-    mt.lock();
+    omp_set_lock(&mt);
  if(!rques.empty()){ 
 
     p=rques.front(); p->hand=0; rques.pop(); 
@@ -45,8 +45,8 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
 if(p->state==REQ_READ){ read_s(p); }else{
   
  if(write_s(p)){ ques.push(p); }; 
-        }; tm=1;
-       }; mt.unlock();
+        };
+       }; omp_unset_lock(&mt);
    
           
  
@@ -103,12 +103,8 @@ if(p->state==REQ_READ){ read_s(p); }else{
                                if(read_s(p)){
                                    continue; };
      
-                                 if(req_gen(p)){
-                                  ques.push(p); continue; };
-                                 
-                            pass_hand(p);
-                        
-                                continue;
+                                  pass_hand(p);
+                                      continue;
                                     };
                  if(pev->events & EPOLLOUT){
                          if(write_s(p)){
@@ -129,10 +125,10 @@ int serv::cacher(const char* s, cache_t& ch){
  
  key_mp key(s);
 
-  cache_it it;
-  if((it=cache_map.find(key))!=cache_map.end()){
+  cache_it it; omp_set_lock(&mtc);
+  if((it=cache_map.find(key))!=cache_map.end()){ 
     chc.pointer=it->second.pointer; chc.size=it->second.size; }
-    else{
+    else{ omp_unset_lock(&mtc);
           std::fstream ifs(s);
            ifs.seekg (0, ifs.end);
            len = ifs.tellg();
@@ -142,9 +138,9 @@ int serv::cacher(const char* s, cache_t& ch){
          chc.pointer=std::shared_ptr<char>(p);
        ifs.read(chc.pointer.get(), len);
       ifs.close();
-    chc.size=len;
+    chc.size=len; omp_set_lock(&mtc);
 if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ return 2; };
-   };
+   }; omp_unset_lock(&mtc);
   ch.pointer=chc.pointer; ch.size=chc.size;
 
   return 0;
@@ -368,11 +364,86 @@ inline void serv::pass_hand(const conn* c){
 
  conn* s=const_cast<conn*>(c);
    
-
- mt.lock();
+ omp_set_lock(&mt);
  s->hand=1; 
  hques.push(s);
-  mt.unlock();
-
+ omp_unset_lock(&mt);
   };
+  int serv::handler(){ 
+ size_t sz;
+  int error;
+  conn* cs;
+   const char *tmp;
+  int i=0;
+  cache_t ch;
+   int rsz;
+  struct stat st;
+    while(run){
+   error=0;
+  omp_set_lock(&mt);
+   if(hques.empty()){ omp_unset_lock(&mt); usleep(10); continue; };
+
+     cs=hques.front(); hques.pop();
+
+     
+     omp_unset_lock(&mt);
+      req_gen(cs);
+          tmp=cs->request.path;
+          
+     if(cs->request.method==HTTP_GET){
+      try{
+          errno=0;
+        i=stat(tmp, &st); if(i<0 || errno==ENOENT){  throw 1; };
+          
+       if(st.st_size>100000){ cs->type=1;
+          cs->buf_size=st.st_size;
+         if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
+              }
+               else{ cs->type=0;
+         if((i=cacher(tmp, ch))!=0){ throw i; };
+               cs->buf_send=ch.pointer.get(); cs->buf_size=ch.size;
+            
+               };
+           
+         }catch(int er){ error=er; 
+         switch(error){ case 1 :  hd::err_s1.copy(cs->header, hd::err_s1.size()); cs->header_len=hd::err_s1.size(); break;
+                        case 2 :  cs->type=1; cs->buf_size=st.st_size;  error=0; break;
+                   
+                    
+                 }; cs->buf_size=0; cs->buf_send=NULL;               
+               };
+               if(error==0){ send_header(cs); };
+                   cs->state=REQ_HEAD;
+           };omp_set_lock(&mt); rques.push(cs);omp_unset_lock(&mt); 
+         };
+       };
+   
+  
+void serv::send_header(conn* c){
+  
+  int sz;
+  char date[25];
+
+  time_t tm_t;
+   time(&tm_t);
+  strncpy(date,asctime(localtime(&tm_t)),25);
+  date[24]='\0';
+   std::ostringstream ost;
+   ost.rdbuf()->pubsetbuf(c->header, 1024);
+   ost.seekp(0);
+      ost<<hd::s0.c_str()
+      <<hd::s2.c_str()
+      <<hd::s17.c_str()
+      <<date<<hd::s19.c_str()  
+      <<hd::s9<<hd::s20.c_str()
+      <<hd::s18.c_str()
+      <<hd::s10.c_str()
+      <<c->buf_size<<"\r\n"
+    <<hd::s5.c_str();
+ 
+  c->header_len=static_cast<int>(ost.tellp());
+
+    };
+
+  void serv::th(void) { uint8_t s;omp_set_lock(&mtc); s=starter++; omp_unset_lock(&mtc); if(s>0){ handler(); }else{ reactor(); };  };        
   

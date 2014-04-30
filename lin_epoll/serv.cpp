@@ -9,8 +9,6 @@ int list_sock;
 
  passwd* p;
 
-  std::shared_ptr<serv> ser;
-
  sockaddr_in socket_s;
       socket_s.sin_family=AF_INET;
          socket_s.sin_addr.s_addr=INADDR_ANY;
@@ -43,7 +41,7 @@ if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 2; };
   
 
  listen(list_sock,1024);
- 
+ /*
  if((pid=fork())>0){ int fd=open("/var/run/ser.pid", O_RDWR | O_CREAT);
            char bs[16]; sprintf(bs,"%d",pid);
           write(fd,bs,strlen(bs));
@@ -63,22 +61,17 @@ for(i = n-1; i >= 0; --i) {
 dup(std);
 dup(std);
  setuid(p->pw_uid);
- setgid(p->pw_gid);
+ setgid(p->pw_gid);*/
  signal(SIGINT, serv::sig_hand );
  signal(SIGTERM, serv::sig_hand );
  signal(SIGPIPE, SIG_IGN );
  
- try{
 
-  ser=std::make_shared<serv>(list_sock);
-
-    }
-  
+  serv s(list_sock);
+/*  }
  catch(std::bad_alloc& d){ exit(-1); }
  catch(int c){  exit(-1); };
- 
-  ser.get()->reactor();
-
+ */
 };
      
 

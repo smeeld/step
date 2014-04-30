@@ -1,9 +1,9 @@
 CC=c++
 DST=epoll_serv
-CFL=-std=c++0x -lpthread
+CFL=-std=c++0x -fopenmp
 HED=-I`pwd`
-PRE=hand.o as.o serv.o hd.o
-SRC=as.cpp hd.cpp serv.cpp hand.cpp
+PRE=as.o serv.o hd.o
+SRC=as.cpp hd.cpp serv.cpp
 all: $(PRE)
 	$(CC) -o $(DST) $(PRE) $(CFL)
 $(PRE): $(SRC)
