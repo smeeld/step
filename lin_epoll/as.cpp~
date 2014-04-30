@@ -2,7 +2,7 @@
 
 int serv::run;
 
- serv::serv(int s) {
+ serv::serv(int s) throw(int) {
   sock=s;
  
  if((efd=epoll_create(1024))<0){  throw 1; };
