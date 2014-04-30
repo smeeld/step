@@ -35,7 +35,6 @@
 #define REQ_WRITE 3
 #define REQ_HAND 4
 #define REQ_WAIT 5
-#define  REQ_HEAD 6
 #define MAX_CON 10000
 #define HTTP_GET 1
 #define HTTP_POST 2
