@@ -15,7 +15,8 @@ epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
  run=1; tm=-1; starter=0;
- 
+ omp_init_lock(&mt);
+ omp_init_lock(&mtc);
 #pragma omp parallel
 {
 th();
@@ -134,12 +135,12 @@ int serv::cacher(const char* s, cache_t& ch){
            len = ifs.tellg();
            ifs.seekg (0, ifs.beg);
           
-          try { p=new char[len]; }catch(std::bad_alloc& b){ ifs.close(); return 2; };
+          try { p=new char[len]; }catch(std::bad_alloc& b){ ifs.close(); return 1; };
          chc.pointer=std::shared_ptr<char>(p);
        ifs.read(chc.pointer.get(), len);
       ifs.close();
     chc.size=len; omp_set_lock(&mtc);
-if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ return 2; };
+if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ omp_unset_lock(&mtc); return 1; };
    }; omp_unset_lock(&mtc);
   ch.pointer=chc.pointer; ch.size=chc.size;
 
@@ -400,7 +401,11 @@ inline void serv::pass_hand(const conn* c){
          if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
               }
                else{ cs->type=0;
-         if((i=cacher(tmp, ch))!=0){ throw i; };
+         if(cacher(tmp, ch)){ cs->type=1;
+                              cs->buf_size=st.st_size;
+         if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
+             
+            };
                cs->buf_send=ch.pointer.get(); cs->buf_size=ch.size;
             
                };
