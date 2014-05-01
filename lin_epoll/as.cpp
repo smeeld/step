@@ -405,9 +405,9 @@ inline void serv::pass_hand(const conn* c){
                               cs->buf_size=st.st_size;
          if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
              
-            };
+            }else{
                cs->buf_send=ch.pointer.get(); cs->buf_size=ch.size;
-            
+                 };
                };
            
          }catch(int er){ error=er; 
