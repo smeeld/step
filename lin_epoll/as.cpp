@@ -411,14 +411,15 @@ inline void serv::pass_hand(const conn* c){
                };
            
          }catch(int er){ error=er; 
-         switch(error){ case 1 :  hd::err_s1.copy(cs->header, hd::err_s1.size()); cs->header_len=hd::err_s1.size(); break;
-                        case 2 :  cs->type=1; cs->buf_size=st.st_size;  error=0; break;
+         switch(error){ case 1 :  hd::err_s1.copy(cs->header, hd::err_s1.size()); 
+                           cs->buf_size=hd::err_s1.size(); cs->buf_send=cs->header; cs->state=REQ_WRITE; break;
+                        default :  break;
                    
                     
                  }; cs->buf_size=0; cs->buf_send=NULL;               
                };
-               if(error==0){ send_header(cs); };
-                   cs->state=REQ_HEAD;
+               if(error==0){ send_header(cs); cs->state=REQ_HEAD; };
+                   
            };omp_set_lock(&mt); rques.push(cs);omp_unset_lock(&mt); 
          };
        };
