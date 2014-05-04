@@ -4,51 +4,60 @@ uint8_t serv::run;
 
  serv::serv(int s) {
   sock=s;
+ do{
  
- if((efd=epoll_create(1024))<0){  throw 1; };
+if((efd=epoll_create(1024))<0){  break; };
  
-    
-   ev.data.fd=sock;
+      ev.data.fd=sock;
     ev.events=EPOLLIN;
- 
+
 epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
- run=1; tm=-1; starter=0;
- omp_init_lock(&mt);
- omp_init_lock(&mtc);
-#pragma omp parallel
-{
-th();
-  };
+ run=1; starter=3; uint8_t n=3;
+ qcount=starter;
+pthread_t pt[3];
+try{
 
+  ques=new que[n];
+}catch(std::bad_alloc& c){ close(efd); break; };
+ 
+while(n>0){
+ 
+ pthread_create(&pt[--n], NULL, th, this); 
+    };
+   break; 
+  }while(1);
  }
+
  void serv::reactor(){
 
  int cur, s, i;
- uint8_t tm;
+ uint8_t tm=starter, tmp=0;
  conn* p;
-
    while(run)
 {  
   
-  if(!ques.empty()){ 
+  if(!tque.empty()){ 
     
-  p=ques.front(); ques.pop();
-   shutdown(p->fd,SHUT_RDWR); p->state=REQ_WAIT; tm=1;
+  p=tque.front(); tque.pop();
+   shutdown(p->fd,SHUT_RDWR); p->state=REQ_WAIT;
      
    };
-    omp_set_lock(&mt);
- if(!rques.empty()){ 
+ tmp=tm;
+while(tmp>0){
+  que & q=ques[--tmp];
+    q.mt.lock();
+ if(!q.rque.empty()){ 
 
-    p=rques.front(); p->hand=0; rques.pop(); 
+    p=q.rque.front(); p->hand=0; q.rque.pop(); q.mt.unlock();
 
 if(p->state==REQ_READ){ read_s(p); }else{
   
- if(write_s(p)){ ques.push(p); }; 
+ if(write_s(p)){ tque.push(p); }; 
         };
-       }; omp_unset_lock(&mt);
-   
+       }else{ q.mt.unlock(); };
+    };
           
  
   cur=epoll_wait(efd,events,1024, 1);
@@ -84,8 +93,8 @@ if(p->state==REQ_READ){ read_s(p); }else{
                   if(epoll_ctl(efd,EPOLL_CTL_ADD,s,&ev)<0){ close(s); continue; };
                    
                      try{ 
-                           p=new conn(s);        
-                       std::pair<conn_it,bool> it=conn_map.insert(std::pair<int, std::shared_ptr<conn> >(s, std::shared_ptr<conn>(p)));
+                           p=new conn(s); std::shared_ptr<conn> ptr(p);       
+                       std::pair<conn_it,bool> it=conn_map.insert(std::move(pr<int, std::shared_ptr<conn> >(s, std::move(ptr))));
                                 
                         if(it.second==false){  delete p; throw std::bad_alloc(); }; }
                        catch(std::bad_alloc& g){  
@@ -109,7 +118,7 @@ if(p->state==REQ_READ){ read_s(p); }else{
                                     };
                  if(pev->events & EPOLLOUT){
                          if(write_s(p)){
-                          ques.push(p); };
+                          tque.push(p); };
                           continue;  
                             };
                           };
@@ -126,10 +135,10 @@ int serv::cacher(const char* s, cache_t& ch){
  
  key_mp key(s);
 
-  cache_it it; omp_set_lock(&mtc);
+  cache_it it; mtc.lock();
   if((it=cache_map.find(key))!=cache_map.end()){ 
     chc.pointer=it->second.pointer; chc.size=it->second.size; }
-    else{ omp_unset_lock(&mtc);
+    else{ mtc.unlock();
           std::fstream ifs(s);
            ifs.seekg (0, ifs.end);
            len = ifs.tellg();
@@ -139,9 +148,9 @@ int serv::cacher(const char* s, cache_t& ch){
          chc.pointer=std::shared_ptr<char>(p);
        ifs.read(chc.pointer.get(), len);
       ifs.close();
-    chc.size=len; omp_set_lock(&mtc);
-if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ omp_unset_lock(&mtc); return 1; };
-   }; omp_unset_lock(&mtc);
+    chc.size=len; mtc.lock();
+if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false){ mtc.unlock(); return 1; };
+   }; mtc.unlock();
   ch.pointer=chc.pointer; ch.size=chc.size;
 
   return 0;
@@ -364,30 +373,32 @@ switch(sp->state){
 inline void serv::pass_hand(const conn* c){
 
  conn* s=const_cast<conn*>(c);
-   
- omp_set_lock(&mt);
+   ++qcount; if(qcount==starter){ qcount=0; };
+ que & q=ques[qcount];
  s->hand=1; 
- hques.push(s);
- omp_unset_lock(&mt);
+ q.mt.lock();
+ q.hque.push(s);
+ q.mt.unlock();
   };
+
   int serv::handler(){ 
  size_t sz;
   int error;
-  conn* cs;
+  conn* cs; 
    const char *tmp;
-  int i=0;
+  uint8_t i=--qcount;
   cache_t ch;
-   int rsz;
   struct stat st;
+  que & q=ques[i];
     while(run){
    error=0;
-  omp_set_lock(&mt);
-   if(hques.empty()){ omp_unset_lock(&mt); usleep(10); continue; };
+  q.mt.lock();
+   if(q.hque.empty()){ q.mt.unlock(); usleep(10); continue; };
 
-     cs=hques.front(); hques.pop();
+     cs=q.hque.front(); q.hque.pop();
 
      
-     omp_unset_lock(&mt);
+     q.mt.unlock();
       req_gen(cs);
           tmp=cs->request.path;
           
@@ -420,7 +431,7 @@ inline void serv::pass_hand(const conn* c){
                };
                if(error==0){ send_header(cs); cs->state=REQ_HEAD; };
                    
-           };omp_set_lock(&mt); rques.push(cs);omp_unset_lock(&mt); 
+           };q.mt.lock(); q.rque.push(cs); q.mt.unlock();
          };
        };
    
@@ -450,6 +461,6 @@ void serv::send_header(conn* c){
   c->header_len=static_cast<int>(ost.tellp());
 
     };
-
-  void serv::th(void) { uint8_t s;omp_set_lock(&mtc); s=starter++; omp_unset_lock(&mtc); if(s>0){ handler(); }else{ reactor(); };  };        
-  
+ void serv::start(){  reactor(); };
+ void* serv::th(void* p){ ((serv*)p)->handler(); }; 
+ 

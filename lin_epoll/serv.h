@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <queue>
-#include <list>
+#include <thread>
 #include <algorithm>
 #include <sstream>
 #include <unordered_map>
@@ -27,7 +27,7 @@
 #include <time.h>
 #include <all.hpp>
 #include <functional>
-#include <omp.h>
+#include <pthread.h>
 #include <mutex>
 #include <string.h>
 #define REQ_HEAD 1
@@ -154,35 +154,51 @@ typedef std::unordered_map<key_mp, cache_t, hash_mp<key_mp>, cmp<key_mp> > cache
 typedef std::unordered_map<int, std::shared_ptr<conn> > conn_mp;
 typedef cache_mp::iterator cache_it;
 typedef conn_mp::iterator conn_it; 
-
+template <typename T, typename U>
+class pr: public std::pair<T, U>{
+public:
+ pr(const T& a, const U& b): std::pair<T, U>(a, std::move(b)){};
+ pr(pr&& r): std::pair<T, U>(r.first, std::move(r.second)){};
+ ~pr(){};
+};
 
 class serv{
+struct que{
+ que(){};
+ que(const que&)=delete;
+ ~que(){};
+ std::queue<conn*> hque;
+ std::queue<conn*> rque;
+ std::mutex mt;
+};
 public:
 serv(int);
- ~serv(){};
- void reactor();
+ ~serv(){  delete [] ques; epoll_ctl(efd, EPOLL_CTL_DEL,sock, &ev); close(sock); close(efd); };
+void start(void); 
 static void sig_hand(int);
 static void sig_pipe(int n);
 static uint8_t run;
 private:
 int sock;
  int efd;
+ uint8_t qcount;
+ void reactor(void);
 int cacher(const char*, cache_t&);
  void pass_hand(const conn*);
 void send_header(conn*);
  int read_s(conn*);
  int write_s(conn*);
- int handler();
+static void* th(void*); 
+ int handler(void);
  uint8_t starter;
-  void th(void);
+  void th(uint8_t);
  int serv_count;
  cache_mp cache_map;
   conn_mp conn_map;
   conn_it it;
- std::queue<conn*> ques;
- std::queue<conn*> hques;
- std::queue<conn*> rques;
- omp_lock_t mt, mtc;
+ que* ques;
+ std::queue<conn*> tque;
+ std::mutex mtc;
  struct sockaddr_in sockddr;
  int lenght;
  uint8_t tm;
