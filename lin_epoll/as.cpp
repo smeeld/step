@@ -20,7 +20,7 @@ pthread_t pt[3];
 try{
 
   ques=new que[n];
-}catch(std::bad_alloc& c){ close(efd); break; };
+}catch(std::bad_alloc& c){ run=0; close(efd); break; };
  
 while(n>0){
  
