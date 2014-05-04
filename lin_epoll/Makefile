@@ -1,6 +1,6 @@
 CC=c++
 DST=epoll_serv
-CFL=-std=c++0x -fopenmp
+CFL=-std=c++0x -lpthread
 HED=-I`pwd`
 PRE=as.o serv.o hd.o
 SRC=as.cpp hd.cpp serv.cpp
