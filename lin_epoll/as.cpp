@@ -2,7 +2,7 @@
 
 uint8_t serv::run;
 
- serv::serv(int s) {
+ serv::serv(int s, uint8_t m) {
   sock=s;
  do{
  
@@ -14,9 +14,9 @@ if((efd=epoll_create(1024))<0){  break; };
 epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
- run=1; starter=3; uint8_t n=3;
+ run=1; starter=m-1; uint8_t n=m-1;
  qcount=starter;
-pthread_t pt[3];
+pthread_t pt[n];
 try{
 
   ques=new que[n];
@@ -124,7 +124,12 @@ if(p->state==REQ_READ){ read_s(p); }else{
                           };
                          };
                        };
-                      };
+  conn_mp::iterator it=conn_map.begin();
+ while(it!=conn_map.end()){
+  s=it->first; ++it;
+   epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);
+               };
+            };
                       
 
 int serv::cacher(const char* s, cache_t& ch){

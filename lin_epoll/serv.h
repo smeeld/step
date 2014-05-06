@@ -172,7 +172,7 @@ struct que{
  std::mutex mt;
 };
 public:
-serv(int);
+serv(int, uint8_t s=4);
  ~serv(){  delete [] ques; epoll_ctl(efd, EPOLL_CTL_DEL,sock, &ev); close(sock); close(efd); };
 void start(void); 
 static void sig_hand(int);
