@@ -17,9 +17,9 @@ inline  void srt(Pos pt, Pos pm, Cmp cmp){
          while(sp!=tmp){
          
      while(cmp(*tmp, *md)){ ++tmp; if(tmp==sp){ n=1; break; }; };
-           if(n){ break; };
+           if(n) break;
      do{ --sp; if(tmp==sp){ n=1; break; }; }while(cmp(*md, *sp));
-              if(n){ break; };
+              if(n) break;
            std::swap(*tmp, *sp);
      ++tmp;
     };  ++md;
@@ -33,19 +33,19 @@ template<typename Pos>
   
   void srt(Pos pt, Pos pm){
   
-   Pos tmp=pt, md=pt, sp, lim=pm;
+   Pos tmp=pt, md=pt, sp;
    int n=0;
    
-   while(tmp==pt){ if(md==lim){  return; };
+   while(tmp==pt){ if(md==pm){  return; };
          
            sp=pm;
           
          while(sp!=tmp){
          
      while(*tmp < *md){ ++tmp; if(tmp==sp){ n=1; break; }; };
-           if(n){ break; };
+           if(n) break;
      do{ --sp; if(tmp==sp){ n=1; break; }; }while(*md < *sp);
-              if(n){ break; };
+              if(n) break;
            std::swap(*tmp, *sp);
      ++tmp;
      };  ++md;
@@ -64,6 +64,6 @@ int main(int a , char** s){
 
  v.push_back(random());
 };
-srt(v.begin(), v.end(), cmp);
+srt(v.begin(), v.end());
  std::copy(v.begin(), v.begin()+std::stoi(s[2]), std::ostream_iterator<int>(std::cout, "\n"));
 };

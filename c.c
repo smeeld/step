@@ -14,9 +14,9 @@ typedef unsigned in;
          while(sp!=tmp){
           n=0;
      while(cmp(tmp, md)){ ++tmp; if(tmp==sp){ n=1; break; }; };
-           if(n){ break; };
+           if(n) break;
      do{ --sp; if(tmp==sp){ n=1; break; }; }while(cmp(md, sp));
-              if(n){ break; };
+              if(n) break;
            n=*tmp; *tmp=*sp; *sp=n; 
      ++tmp;
     };  ++md; mid=*md;
