@@ -1,5 +1,5 @@
 CC=c++
-DST=epoll_serv
+DST=eps
 CFL=-std=c++0x -lpthread
 HED=-I`pwd`
 PRE=main.o serv.o hd.o

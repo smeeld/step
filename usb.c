@@ -17,7 +17,7 @@ usb_find_busses();
 usb_find_devices();
 bus=usb_get_busses();
  if(bus==NULL){ exit(0); };
-  int i=0;int j=0; int s=0;int c;
+  int i=0, j=0, s=0, c;
  for(;bus; bus=bus->next){
    printf("NUM BUS=%d\n",i);
   for(dev=bus->devices; dev; dev=dev->next){
