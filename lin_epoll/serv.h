@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <mutex>
 #include <string.h>
+#include <condition_variable>
 #define REQ_HEAD 1
 #define REQ_READ 2
 #define REQ_WRITE 3
@@ -170,17 +171,30 @@ struct que{
  std::queue<conn*> hque;
  std::queue<conn*> rque;
  std::mutex mt;
+ std::condition_variable cv;
+ pthread_t pt;
 };
 public:
+serv(){};
 serv(int, uint8_t s=4);
- ~serv(){  delete [] ques; epoll_ctl(efd, EPOLL_CTL_DEL,sock, &ev); close(sock); close(efd); };
-void start(void); 
-static void sig_hand(int);
-static void sig_pipe(int n);
-static uint8_t run;
+serv(const serv&)=delete;
+
+ ~serv(){  --starter;
+while(starter>0){
+ pthread_cancel( ques[--starter].pt);
+};
+pthread_cancel(ptr);
+   auto it=conn_map.begin(); int s;
+ while(it!=conn_map.end()){
+  s=it->first; ++it;
+   epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s); };
+ delete [] ques; epoll_ctl(efd, EPOLL_CTL_DEL,sock, &ev); close(sock); close(efd);
+};
+
 private:
 int sock;
  int efd;
+ pthread_t ptr;
  uint8_t qcount;
  void reactor(void);
 int cacher(const char*, cache_t&);
@@ -189,10 +203,9 @@ void send_header(conn*);
  int read_s(conn*);
  int write_s(conn*);
 static void* th(void*); 
- int handler(void);
+ int handler(uint8_t);
  uint8_t starter;
   void th(uint8_t);
- int serv_count;
  cache_mp cache_map;
   conn_mp conn_map;
   conn_it it;
@@ -200,7 +213,6 @@ static void* th(void*);
  std::queue<conn*> tque;
  std::mutex mtc;
  struct sockaddr_in sockddr;
- int lenght;
  uint8_t tm;
  socklen_t socklen;
  epv ev, *pev;

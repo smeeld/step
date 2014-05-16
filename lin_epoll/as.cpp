@@ -1,7 +1,5 @@
 #include <serv.h>
 
-uint8_t serv::run;
-
  serv::serv(int s, uint8_t m) {
   sock=s;
  do{
@@ -14,28 +12,30 @@ if((efd=epoll_create(1024))<0){  break; };
 epoll_ctl(efd,EPOLL_CTL_ADD,sock,&ev);
   
    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
- run=1; starter=m-1; uint8_t n=m-1;
- qcount=starter;
+  starter=m; uint8_t n=m-1;
+ qcount=m;
 pthread_t pt[n];
 try{
 
   ques=new que[n];
-}catch(std::bad_alloc& c){ run=0; close(efd); break; };
+}catch(std::bad_alloc& c){ close(efd); break; };
  
 while(n>0){
  
- pthread_create(&pt[--n], NULL, th, this); 
+ pthread_create(&ques[--n].pt, NULL, th, this); 
     };
+pthread_create(&ptr, NULL, th, this); 
    break; 
   }while(1);
  }
 
+
  void serv::reactor(){
 
  int cur, s, i;
- uint8_t tm=starter, tmp=0;
+ uint8_t tm=starter-1, tmp=0;
  conn* p;
-   while(run)
+   while(1)
 {  
   
   if(!tque.empty()){ 
@@ -120,16 +120,12 @@ if(p->state==REQ_READ){ read_s(p); }else{
                          if(write_s(p)){
                           tque.push(p); };
                           continue;  
-                            };
-                          };
-                         };
-                       };
-  conn_mp::iterator it=conn_map.begin();
- while(it!=conn_map.end()){
-  s=it->first; ++it;
-   epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);
+                           };
+                        };
+                     };
+                  };
                };
-            };
+   
                       
 
 int serv::cacher(const char* s, cache_t& ch){
@@ -169,9 +165,6 @@ if (ioctl(s, FIONBIO, &fl) &&
 	    ((fl = fcntl(s, F_GETFL, 0)) < 0 ||
 	     fcntl(s, F_SETFL, fl | O_NONBLOCK) < 0)) {close(s); };
  };
-
- void serv::sig_hand(int n){ serv::run=0; };
- void serv::sig_pipe(int n){};
 
               
  int serv::write_s(conn* c){
@@ -378,27 +371,28 @@ switch(sp->state){
 inline void serv::pass_hand(const conn* c){
 
  conn* s=const_cast<conn*>(c);
-   ++qcount; if(qcount==starter){ qcount=0; };
+   ++qcount; if(qcount==(starter-1)){ qcount=0; };
  que & q=ques[qcount];
  s->hand=1; 
  q.mt.lock();
  q.hque.push(s);
  q.mt.unlock();
+ q.cv.notify_one();
   };
 
-  int serv::handler(){ 
+  int serv::handler(uint8_t c){ 
  size_t sz;
   int error;
   conn* cs; 
    const char *tmp;
-  uint8_t i=--qcount;
+  uint8_t i=c;
   cache_t ch;
   struct stat st;
   que & q=ques[i];
-    while(run){
+    while(1){
    error=0;
   q.mt.lock();
-   if(q.hque.empty()){ q.mt.unlock(); usleep(10); continue; };
+   if(q.hque.empty()){ q.mt.unlock(); std::unique_lock<std::mutex> lck(q.mt); q.cv.wait(lck); continue; };
 
      cs=q.hque.front(); q.hque.pop();
 
@@ -432,12 +426,12 @@ inline void serv::pass_hand(const conn* c){
                         default :  break;
                    
                     
-                 }; cs->buf_size=0; cs->buf_send=NULL;               
+                 };       
                };
                if(error==0){ send_header(cs); cs->state=REQ_HEAD; };
                    
            };q.mt.lock(); q.rque.push(cs); q.mt.unlock();
-         };
+         }; 
        };
    
   
@@ -466,6 +460,7 @@ void serv::send_header(conn* c){
   c->header_len=static_cast<int>(ost.tellp());
 
     };
- void serv::start(){  reactor(); };
- void* serv::th(void* p){ ((serv*)p)->handler(); }; 
+ void* serv::th(void* p){ uint8_t c;serv* s=(serv*)p; s->mtc.lock(); c=--s->qcount; s->mtc.unlock();
+   if(c>0){ s->handler(c-1); }else{ s->reactor(); }; };
+
  

@@ -1,12 +1,16 @@
 #include <serv.h>
-
+#include <vector>
+uint8_t run;
+void sg(int s, siginfo_t* ip, void* p){ run=0; };
  int main()
  {
 pid_t pid;
-int i;
+uint8_t i;
 
 int list_sock;
-
+struct sigaction sgc;
+ sgc.sa_sigaction=sg;
+ sgc.sa_flags=SA_SIGINFO;
  passwd* p;
 
  sockaddr_in socket_s;
@@ -62,12 +66,19 @@ dup(std);
 dup(std);
  setuid(p->pw_uid);
  setgid(p->pw_gid);
- signal(SIGINT, serv::sig_hand );
- signal(SIGTERM, serv::sig_hand );
- signal(SIGPIPE, SIG_IGN );
+ sigaction(SIGINT, &sgc, NULL );
+ sigaction(SIGTERM, &sgc, NULL);
+i=0;
+std::vector<std::shared_ptr<serv> > v;
+while(i++<4){
 
-  serv s(list_sock);
-  s.start();
+ v.push_back(std::make_shared<serv>(list_sock));
+ 
+  };run=1;
+while(run){
+ usleep(10);
+};
+
 
 };
      
