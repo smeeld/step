@@ -5,7 +5,7 @@ void sg(int s, siginfo_t* ip, void* p){ run=0; };
  int main()
  {
 pid_t pid;
-uint8_t i;
+int i;
 
 int list_sock;
 struct sigaction sgc;
