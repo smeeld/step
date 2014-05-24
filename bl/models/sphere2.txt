@@ -1,0 +1,22 @@
+texfile  { /usr/share/prog/image/s2.jpg }
+
+type { 1 }
+vershaderfile {/usr/share/prog/shaders/vs.glsl }
+fragshaderfile {   /usr/share/prog/shaders/fs.glsl }
+texture_number { 1 }
+index_number { 300 }
+vertex_number {  100 }
+texcoord_number {  50 }
+rpos { -0.1 }
+rpos { 0.1 }
+rpos {  0.7 }
+pos {  0.4 }
+pos { 0.4 }
+pos {  0.2 }
+scale { 0.4 }
+scale { 0.4 }
+scale {  0.4 }
+rstep { 0.2  }
+
+
+mode { 1 }

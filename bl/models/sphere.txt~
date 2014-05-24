@@ -1,0 +1,22 @@
+texfile  { /home/g/proc/s1.jpg }
+
+type { 1 }
+vershaderfile {/home/g/proc/vs.glsl }
+fragshaderfile {   /home/g/proc/fs.glsl }
+texture_number { 1 }
+index_number { 3600 }
+vertex_number {  1200 }
+texcoord_number {  600}
+rpos { -0.1 }
+rpos { 0.1 }
+rpos {  0.7 }
+pos { -0.7 }
+pos { -0.14 }
+pos {  0.2 }
+scale { 0.2 }
+scale { 0.2 }
+scale {  0.2 }
+rstep { 0.0  }
+
+
+mode { 1 }

@@ -1,0 +1,10 @@
+file { /usr/share/prog/models/sphere.txt } type { 0 }
+file { /usr/share/prog/models/fone.txt } type { 1 }
+
+file { /usr/share/prog/models/sphere2.txt } type { 0 }
+file { /usr/share/prog/models/sphere3.txt } type { 0 }
+file { /usr/share/prog/models/sphere4.txt } type { 0 }
+
+file { /usr/share/prog/models/sphere5.txt } type { 0 }
+
+

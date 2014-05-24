@@ -1,0 +1,10 @@
+file { /home/g/proc/sphere.txt } type { 0 }
+file { /home/g/proc/fone.txt } type { 1 }
+
+file { /home/g/proc/sphere2.txt } type { 0 }
+file { /home/g/proc/sphere3.txt } type { 0 }
+file { /home/g/proc/sphere4.txt } type { 0 }
+
+file { /home/g/proc/sphere5.txt } type { 0 }
+
+

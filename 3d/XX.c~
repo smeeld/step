@@ -18,7 +18,7 @@ dp=XOpenDisplay(NULL);
 int screen=DefaultScreen(dp);
 root=RootWindow(dp,screen);
 visual=glXChooseVisual(dp,0, att);
-XAllocNamedColor(dp,DefaultColormap(dp,screen),"Green",&col1, &col2);
+XAllocNamedColor(dp,DefaultColormap(dp,screen),"Green",&col1,&col2);
 attr.background_pixel=BlackPixel(dp,screen);
 attr.border_pixel=0;
 attr.colormap=XCreateColormap(dp,root,visual->visual,AllocNone);

@@ -1,0 +1,34 @@
+type { 0  }
+texfile  { /usr/share/prog/image/s1.jpg }
+vershaderfile {/usr/share/prog/shaders/fone_vs.glsl }
+fragshaderfile {   /usr/share/prog/shaders/fone_fs.glsl }
+
+index_number { 4}
+vertex_number {  4}
+texcoord_number {  4 }
+
+texture_number {  1 }
+
+mode { 0 }
+rpos { 0.0 }
+rpos { 0.0 }
+rpos {  0.0 }
+pos { 0.0 }
+pos { 0.0 }
+pos {  0.0 }
+scale { 1.0 }
+scale { 1.0 }
+scale {  1.0 }
+rstep { 0.002   }
+vec { -1.0, 1.0,0.3,
+
+1.0, 1.0,0.5,
+1.0,-1.0,0.5,
+-1.0,-1.0, 0.5 }
+
+coord {
+ 0.0, 0.0, 0.0,1.0,
+1.0,1.0, 1.0, 0.0  }
+
+index  { 0, 1, 2 , 3 }
+

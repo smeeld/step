@@ -1,0 +1,21 @@
+#include <iostream> 
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <GL/gl.h>
+#include <GL/glext.h>
+#include <GL/glx.h>
+#include <math.h>
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/shape.h>
+#include <stdlib.h>
+#include <string.h>
+#include <jpeglib.h>
+#include <setjmp.h>
+#include <list>
+#include <memory>
+#include <string>
+

@@ -1,0 +1,22 @@
+texfile  { /usr/share/prog/image/s3.jpg }
+
+type { 1 }
+vershaderfile {/usr/share/prog/shaders/vs.glsl }
+fragshaderfile {   /usr/share/prog/shaders/fs.glsl }
+texture_number { 1 }
+index_number { 1200 }
+vertex_number {  400 }
+texcoord_number {  200}
+rpos { -0.1 }
+rpos { 0.1 }
+rpos {  0.7 }
+pos { 0.3 }
+pos { -0.11 }
+pos {  0.55 }
+scale { 0.2}
+scale { 0.2 }
+scale {  0.2 }
+rstep { 0.03  }
+
+
+mode { 1 }
