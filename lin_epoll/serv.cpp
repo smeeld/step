@@ -21,7 +21,7 @@ try{
 }catch(std::bad_alloc& c){ close(efd); break; };
  
 while(n>0){
- 
+  
  pthread_create(&ques[--n].pt, NULL, th, this); 
     };
 pthread_create(&ptr, NULL, th, this); 
@@ -46,6 +46,7 @@ pthread_create(&ptr, NULL, th, this);
    };
  tmp=tm;
 while(tmp>0){
+
   que & q=ques[--tmp];
     q.mt.lock();
  if(!q.rque.empty()){ 
@@ -371,7 +372,7 @@ switch(sp->state){
 inline void serv::pass_hand(const conn* c){
 
  conn* s=const_cast<conn*>(c);
-   ++qcount; if(qcount==(starter-1)){ qcount=0; };
+   ++qcount; if(qcount==(starter-1)) qcount=0;
  que & q=ques[qcount];
  s->hand=1; 
  q.mt.lock();
@@ -385,19 +386,18 @@ inline void serv::pass_hand(const conn* c){
   int error;
   conn* cs; 
    const char *tmp;
-  uint8_t i=c;
+  uint8_t i;
   cache_t ch;
   struct stat st;
-  que & q=ques[i];
+  que & q=ques[c];
     while(1){
    error=0;
-  q.mt.lock();
-   if(q.hque.empty()){ q.mt.unlock(); std::unique_lock<std::mutex> lck(q.mt); q.cv.wait(lck); continue; };
+  do{
+    std::unique_lock<std::mutex> lck(q.mt);
+   while(q.hque.empty()){  q.cv.wait(lck);   };
 
-     cs=q.hque.front(); q.hque.pop();
-
-     
-     q.mt.unlock();
+     cs=q.hque.front(); q.hque.pop(); break; }while(1);
+    
       req_gen(cs);
           tmp=cs->request.path;
           
@@ -460,7 +460,7 @@ void serv::send_header(conn* c){
   c->header_len=static_cast<int>(ost.tellp());
 
     };
- void* serv::th(void* p){ uint8_t c;serv* s=(serv*)p; s->mtc.lock(); c=--s->qcount; s->mtc.unlock();
+ void* serv::th(void* p){ uint8_t c; serv* s=(serv*)p; s->mtc.lock(); c=--s->qcount; s->mtc.unlock();
    if(c>0){ s->handler(c-1); }else{ s->reactor(); }; };
 
  
