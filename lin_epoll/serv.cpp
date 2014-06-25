@@ -70,11 +70,12 @@ if(p->state==REQ_READ){ read_s(p); }else{
       
           if ((pev->events & EPOLLERR) || (pev->events & EPOLLHUP) && (pev->events & EPOLLRDHUP))
 	         { 
-                   p=conn_map[s].get();
+                   p=conn_map[s];
                    
 	          if(p->hand){ p->keep=1; continue; };
-                
+                std::unique_ptr<conn> ptr(p);
               conn_map.erase(s);
+               
            epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
               close(s);
                  
@@ -94,8 +95,9 @@ if(p->state==REQ_READ){ read_s(p); }else{
                   if(epoll_ctl(efd,EPOLL_CTL_ADD,s,&ev)<0){ close(s); continue; };
                    
                      try{ 
-                           p=new conn(s); std::shared_ptr<conn> ptr(p);       
-                       std::pair<conn_it,bool> it=conn_map.insert(std::move(pr<int, std::shared_ptr<conn> >(s, std::move(ptr))));
+                           p=new conn(s);
+                              
+                       std::pair<conn_it,bool> it=conn_map.insert(std::make_pair(s, p));
                                 
                         if(it.second==false){  delete p; throw std::bad_alloc(); }; }
                        catch(std::bad_alloc& g){  
@@ -106,7 +108,7 @@ if(p->state==REQ_READ){ read_s(p); }else{
                             }
                     else {
                    
-                          p=conn_map[s].get();  if(p->hand){ continue; };
+                          p=conn_map[s];  if(p->hand){ continue; };
                         
                         if(p->state==REQ_HAND){ continue; };
                              
@@ -179,7 +181,7 @@ if (ioctl(s, FIONBIO, &fl) &&
     
           do{errno=0;  i=send(c->fd,c->header,c->header_len,0);   
 
-           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
+           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR) continue;
                shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT;
                          return 0; }; 
                  break; c->state=REQ_WRITE;
@@ -189,7 +191,7 @@ if (ioctl(s, FIONBIO, &fl) &&
          if((c->type)==0){
        do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
   
-          if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){  errno=0; continue; };
+          if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR) continue;
                  shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT; 
                         return 0; }; 
                 c->size_tr+=i; i=0; break;
@@ -197,7 +199,7 @@ if (ioctl(s, FIONBIO, &fl) &&
                  };
     if(c->type==1){ 
         do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
-           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0; continue; };
+           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR) continue;
                       
                      shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT;
                         return 0; }; 
@@ -222,7 +224,7 @@ if (ioctl(s, FIONBIO, &fl) &&
  
     do{errno=0; i=read(c->fd, c->buf_recv, 1024); 
         
-       if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR){ errno=0;  continue; }; 
+       if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR)  continue; 
           shutdown(c->fd, SHUT_RDWR); c->state=REQ_WAIT; i=1; break; };
             c->size_recv+=i; i=0;
                 

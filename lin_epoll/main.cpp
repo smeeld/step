@@ -68,13 +68,10 @@ dup(std);
  setgid(p->pw_gid);
  sigaction(SIGINT, &sgc, NULL );
  sigaction(SIGTERM, &sgc, NULL);
-i=0;
-std::vector<std::shared_ptr<serv> > v;
-while(i++<4){
 
- v.push_back(std::make_shared<serv>(list_sock));
+serv vptr(list_sock);
  
-  };run=1;
+ run=1;
 while(run){
  usleep(10);
 };

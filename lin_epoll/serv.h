@@ -79,6 +79,8 @@ static const str err_s1;
 static const str err_s2;
 static const str err_s3;
 };
+
+
 struct request_head{
 int method;
 int header_size;
@@ -101,7 +103,7 @@ typedef struct cch{
 class conn{
 public:
 conn(){};
-conn(int s):fd(s){ keep=0; hand=0; size_read=0; size_tr=0; size_recv=0; state=REQ_READ; keep_count=0; };
+conn(int s):fd(s),keep(0), hand(0),size_read(0), size_tr(0), size_recv(0), state(REQ_READ), keep_count(0){};
 ~conn(){};
 int fd;
 int index;
@@ -152,7 +154,7 @@ size_t operator()(const T& ss) const {
  };
  
 typedef std::unordered_map<key_mp, cache_t, hash_mp<key_mp>, cmp<key_mp> > cache_mp;
-typedef std::unordered_map<int, std::shared_ptr<conn> > conn_mp;
+typedef std::unordered_map<int, conn* > conn_mp;
 typedef cache_mp::iterator cache_it;
 typedef conn_mp::iterator conn_it; 
 template <typename T, typename U>
@@ -186,7 +188,8 @@ while(starter>0){
 pthread_cancel(ptr);
    auto it=conn_map.begin(); int s;
  while(it!=conn_map.end()){
-  s=it->first; ++it;
+  s=it->first;
+   delete it->second; ++it;
    epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s); };
  delete [] ques; epoll_ctl(efd, EPOLL_CTL_DEL,sock, &ev); close(sock); close(efd);
 };
