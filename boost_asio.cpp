@@ -7,17 +7,45 @@
 
 using namespace std;
 using boost::asio::ip::tcp;
-typedef struct _cache{
+struct cache{
 int size;
 char* cache;
-} cache;
+};
  
   string errors[]={"NO SUCH FILE PLEASE CHECK THE URL IN  REQUEST BOX",
                 "INTERNAL SERVE ERROR" };
 
 class conn;
-class serv
+struct key{
+key(const char* s){ int len=strlen(s); if(len<128) { strcpy(str, s); }else{ strncpy(str, s, 127); str[127]='\0'; }; };
+char str[128];
+ };
 
+  template <typename T>
+
+struct cmp{
+
+ bool operator()(const T& t1, const T& t2) const {
+
+  return !strcmp(t1.str,t2.str); };
+
+ };
+
+template <typename T>
+struct hash_t{
+
+size_t operator()(const T& ss) const { 
+   char* p=const_cast<char*>(ss.str);
+  std::size_t sz=0; int len=strlen(ss.str);
+
+    for (; len > 0; --len){
+      sz = (sz * 131) + *p++;
+    };
+ return sz; };
+
+ };
+ 
+class serv
 {
 public:
 serv();
@@ -26,7 +54,7 @@ serv();
 boost::asio::io_service io;
 tcp::acceptor accept;
 tcp::socket sock;
-unordered_map<string, cache> cache_map;
+unordered_map<key, cache, hash_t<key>, cmp<key> > cache_map;
 int check_cache(const char*,cache&);
 unordered_set<class conn*> conn_mas;
 void start(void);
@@ -62,7 +90,7 @@ sock(io)
 
   signal(SIGTERM, sig_hand); };
 serv::~serv(){ int i;
-             unordered_map<string, cache>::iterator it=cache_map.begin();
+             unordered_map<key, cache>::iterator it=cache_map.begin();
               unordered_set<conn*>::iterator cit=conn_mas.begin();
               while(it!=cache_map.end()){ 
                                 free(it->second.cache);
@@ -86,9 +114,10 @@ try{
      
   };
 int serv::check_cache(const char* s, cache& ch)
- {unordered_map<string,cache>::iterator it;
+ {unordered_map<key, cache, hash_t<key>, cmp<key> >::iterator it;
+  key ck(s);
   
-   if((it=cache_map.find(string(s)))!=cache_map.end())
+   if((it=cache_map.find(ck))!=cache_map.end())
        { ch.cache=it->second.cache; ch.size=it->second.size; return 0 ; }
      else {
            fstream fs(s);
@@ -104,7 +133,7 @@ int serv::check_cache(const char* s, cache& ch)
        fs.read(ch.cache,size);
       }while(!fs.eof());
        ch.size=size;
-       cache_map.insert(pair<string,cache>(string(s),ch));
+       cache_map.insert(make_pair(ck, ch));
        fs.close();
        return 0;
      };
