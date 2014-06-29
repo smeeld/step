@@ -54,9 +54,9 @@ while(tmp>0){
 
     p=q.rque.front(); p->hand=0; q.rque.pop(); q.mt.unlock();
 
-if(p->state==REQ_READ){ read_s(p); }else{
+if(p->state==REQ_READ){ if(read_s(p)) continue; pass_hand(p); }else{
   
- if(write_s(p)){ tque.push(p); }; 
+ if(write_s(p)) tque.push(p); 
         };
        }else{ q.mt.unlock(); };
     };
