@@ -73,7 +73,7 @@ serv vptr(list_sock);
  
  run=1;
 while(run){
- usleep(10);
+ sleep(1);
 };
 
 

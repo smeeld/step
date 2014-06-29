@@ -32,7 +32,8 @@ pthread_create(&ptr, NULL, th, this);
 
  void serv::reactor(){
 
- int cur, s, i;
+ int cur, s, i, cnt;
+ unsigned int nm=0;
  uint8_t tm=starter-1, tmp=0;
  conn* p;
    while(1)
@@ -60,8 +61,8 @@ if(p->state==REQ_READ){ read_s(p); }else{
        }else{ q.mt.unlock(); };
     };
           
- 
-  cur=epoll_wait(efd,events,1024, 1);
+   cnt=(nm>0) ? 0 : -1;
+  cur=epoll_wait(efd,events,1024, cnt);
     
     for(i=0; i<cur; i++)
      { 
@@ -78,7 +79,7 @@ if(p->state==REQ_READ){ read_s(p); }else{
                
            epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
               close(s);
-                 
+                   --nm;
                   continue; 
                       };
 
@@ -103,7 +104,7 @@ if(p->state==REQ_READ){ read_s(p); }else{
                        catch(std::bad_alloc& g){  
                          epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);
                           };   
-                        
+                           ++nm;
                            continue;
                             }
                     else {
@@ -179,33 +180,38 @@ if (ioctl(s, FIONBIO, &fl) &&
                      
            if(c->state==REQ_HEAD){
     
-          do{errno=0;  i=send(c->fd,c->header,c->header_len,0);   
+          do{errno=0; i=0;  i=send(c->fd,c->header,c->header_len,0);   
 
-           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR) continue;
-               shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT;
-                         return 0; }; 
-                 break; c->state=REQ_WRITE;
+           if(i<0){ if(errno==EAGAIN) return 0;
+                 if(errno==EINTR) continue;
+                  shutdown(c->fd,SHUT_RDWR);
+                 c->state=REQ_WAIT; return 0;
+                     }; 
+                  c->state=REQ_WRITE; break;
                     }while(1);
                   }
       
-         if((c->type)==0){
-       do{ errno=0; i=write(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr);
+         if((c->type)==0){ i=0;
+       do{ errno=0; i=send(c->fd, c->buf_send+c->size_tr, c->buf_size-c->size_tr, 0);
   
-          if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR) continue;
-                 shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT; 
-                        return 0; }; 
-                c->size_tr+=i; i=0; break;
+           if(i<0){ if(errno==EAGAIN) return 0;
+                 if(errno==EINTR) continue;
+                   shutdown(c->fd,SHUT_RDWR);
+                 c->state=REQ_WAIT; return 0;
+                      }; 
+                   c->size_tr+=i; i=0; break;
                     }while(1);
                  };
     if(c->type==1){ 
         do{errno=0; i=sendfile(c->fd, c->file_fd, 0, c->buf_size);
-           if(i==0 || i<0){ if(errno==EAGAIN || errno==EINTR) continue;
-                      
-                     shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT;
-                        return 0; }; 
-                c->size_tr+=i; i=0; break;
-                 }while(1);
-                };
+           if(i<0){ if(errno==EAGAIN) return 0;
+                 if(errno==EINTR) continue;
+                  shutdown(c->fd,SHUT_RDWR);
+                 c->state=REQ_WAIT; return 0;
+                    }; 
+                   c->size_tr+=i; i=0; break;
+                    }while(1);
+                 };
              
           if(c->size_tr==c->buf_size){ if(c->type==1){ close(c->file_fd); };
              if(c->request.connection_keep){ 
@@ -222,10 +228,12 @@ if (ioctl(s, FIONBIO, &fl) &&
 
      if(c->keep){ shutdown(c->fd,SHUT_RDWR); c->state=REQ_WAIT; return 1; };
  
-    do{errno=0; i=read(c->fd, c->buf_recv, 1024); 
+    do{ errno=0; i=recv(c->fd, c->buf_recv, 1024, 0); 
         
-       if( i==0 || i<0){ if(errno==EAGAIN || errno==EINTR)  continue; 
-          shutdown(c->fd, SHUT_RDWR); c->state=REQ_WAIT; i=1; break; };
+       if(i<0 || i==0){ if(errno==EINTR)  continue; 
+         if(errno==EAGAIN) return 1;
+        shutdown(c->fd, SHUT_RDWR); c->state=REQ_WAIT; return 1;
+             };
             c->size_recv+=i; i=0;
                 
              break; }while(1);
@@ -374,8 +382,10 @@ switch(sp->state){
 inline void serv::pass_hand(const conn* c){
 
  conn* s=const_cast<conn*>(c);
-   ++qcount; if(qcount==(starter-1)) qcount=0;
- que & q=ques[qcount];
+  uint8_t nm=c->q_nm;
+   if(nm==0){ 
+   ++qcount; if(qcount==starter) qcount=1; s->q_nm=nm=qcount; };
+ que & q=ques[--nm];
  s->hand=1; 
  q.mt.lock();
  q.hque.push(s);

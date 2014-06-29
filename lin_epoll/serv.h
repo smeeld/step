@@ -103,7 +103,7 @@ typedef struct cch{
 class conn{
 public:
 conn(){};
-conn(int s):fd(s),keep(0), hand(0),size_read(0), size_tr(0), size_recv(0), state(REQ_READ), keep_count(0){};
+conn(int s):fd(s),keep(0), hand(0),size_read(0), size_tr(0), size_recv(0), state(REQ_READ), keep_count(0), q_nm(0){};
 ~conn(){};
 int fd;
 int index;
@@ -123,6 +123,7 @@ size_t size_recv;
 size_t size_read;
 char* buf_send;
 size_t buf_size;
+uint8_t q_nm;
   };   
 struct key_mp{
 key_mp(const char* s){ int len=strlen(s); if(len<128) { strcpy(str, s); }else{ strncpy(str, s, 127); str[127]='\0'; }; };
@@ -208,6 +209,7 @@ void send_header(conn*);
 static void* th(void*); 
  int handler(uint8_t);
  uint8_t starter;
+ unsigned long cn_nm;
   void th(uint8_t);
  cache_mp cache_map;
   conn_mp conn_map;
