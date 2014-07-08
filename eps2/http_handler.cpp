@@ -1,8 +1,9 @@
-#include <serv.h>
-
+#include <sys/stat.h>
+#include <http_handler.h>
+#include <hd.hpp>
  void http_handler::send_header(http_conn* c){
   
-  int sz;
+  size_t sz;
   char date[25];
 
   time_t tm_t;
@@ -21,12 +22,12 @@
       <<hd::s10.c_str()
       <<c->buf_size<<"\r\n"
     <<hd::s5.c_str();
- 
-  c->header_len=static_cast<int>(ost.tellp());
-
+    sz=static_cast<size_t>(ost.tellp());
+  c->header_len=sz;
+     c->msg_add(c->header, sz);
     };
 
-inline  int http_handlep::req_gen (http_conn* c){
+inline  int http_handler::req_gen (http_conn* c){
 
   http_conn* sp=c;
 switch(sp->state){
@@ -78,7 +79,7 @@ switch(sp->state){
    if((tmp=std::search(b, end, tmp, tmp+12))==end){ 
     
      tmp=const_cast<char*>(hd::s10.c_str());
-   if((tmp=std::search(b, end, tmp, tmp+12))==end){ sp->request.content_type=NULL; break;  }; 
+   if((tmp=std::search(b, end, tmp, tmp+12))==end){ sp->request.content_type=0; break;  }; 
      
    }; 
        
@@ -105,7 +106,7 @@ switch(sp->state){
    if((tmp=std::search(b, end, tmp, tmp+10))==end){ 
 
       tmp=const_cast<char*>(hd::s26.c_str());
-   if((tmp=std::search(b, end, tmp, tmp+10))==end){ sp->request.connection_keep=0x00; break;  }; 
+   if((tmp=std::search(b, end, tmp, tmp+10))==end){ sp->request.connection_keep=1; break;  }; 
       };
          tmp+=11;
 
@@ -145,7 +146,7 @@ switch(sp->state){
    if((tmp=std::search(b, end, tmp, tmp+14))==end){ 
 
      tmp=const_cast<char*>(hd::s27.c_str());
-   if((tmp=std::search(b, end, tmp, tmp+14))==end){ sp->request.content_length=NULL; return 1;  }; 
+   if((tmp=std::search(b, end, tmp, tmp+14))==end){ sp->request.content_length=0; return 1;  }; 
       
       };
          tmp+=15;
@@ -161,7 +162,8 @@ switch(sp->state){
  };
  return 0;
     };
-void http_handlep::handler(conn* s){
+
+void http_handler::handler(conn* s){
     struct stat st;
      size_t sz;
      int error;
@@ -178,29 +180,26 @@ void http_handlep::handler(conn* s){
           
        if(st.st_size>100000){ cs->type=REQ_SENDFILE;
           cs->buf_size=st.st_size;
-         if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
+         if((cs->file_fd=open(tmp, O_RDONLY))==0) throw 1;
+             send_header(cs); return;
               }
-               else{ cs->type=0;
-         if(cacher(tmp, ch)){ cs->type=REQ_SENDMSG;
+               else{ cs->type=REQ_SENDMSG;
+         if(cacher(tmp, ch)){ cs->type=REQ_SENDFILE;
                               cs->buf_size=st.st_size;
-         if((cs->file_fd=open(tmp, O_RDONLY))==0){ throw 1; };
+         if((cs->file_fd=open(tmp, O_RDONLY))==0) throw 1;
+              send_header(cs); return;
              
-            }else{
-               cs->buf_send=ch.pointer.get(); cs->buf_size=ch.size;
+             }else{ char* bf=ch.pointer.get();size_t sz=ch.size;
+               
+               cs->buf_send=bf; cs->buf_size=sz;
+              send_header(cs);
+              cs->msg_add(bf, sz); return;
                  };
                };
            
          }catch(int er){  error_hand(cs, er); return; };
            
-            send_header(cs);          
-           struct iovec* pvc=cs->msg.msg_iov;   
-           cs->msg.msg_iovlen=2;
-           pvc->iov_base=&cs->header;
-           pvc->iov_len=cs->header_len;
-           pvc++;
-           pvc->iov_base=&cs->buf_send;
-           pvc->iov_len=cs->buf_size;
-           cs->state=REQ_WRITE;
+                
           };
        };
   
@@ -212,8 +211,8 @@ int http_handler::cacher(const char* s, cache_t& ch){
  
  key_mp key(s);
 
-  
-  if(( auto it=cache_map.find(key))!=cache_map.end()){ 
+  auto it=cache_map.find(key);
+  if(it!=cache_map.end()){ 
     chc.pointer=it->second.pointer; chc.size=it->second.size; }
     else{ 
           std::fstream ifs(s);
@@ -234,19 +233,18 @@ if(cache_map.insert(std::pair<key_mp, cache_t>(key, chc)).second==false) return 
  };
 void http_handler::error_hand(http_conn* s, uint8_t er){
         int error=er;
-         http_conn* cs=s; 
-         switch(error){ case 1 :  hd::err_s1.copy(cs->header, hd::err_s1.size()); 
-                           cs->buf_size=hd::err_s1.size(); cs->buf_send=cs->header;
+         http_conn* cs=s;
+         char* bf;
+         size_t sz; 
+         switch(error){ case 1 : bf=cs->header; sz=hd::err_s1.size();
+                                 hd::err_s1.copy(bf, sz); 
+                           cs->buf_size=sz; cs->buf_send=bf;
+                            cs->msg_add(bf, sz); 
                              cs->state=REQ_WRITE; break;
                         default :  break;
                       };
                  cs->request.connection_keep=0;
-            struct iovec* pvc=cs->msg.msg_iov;   
-           
-           cs->msg.msg_iovlen=1;
-           pvc->iov_base=&cs->header;
-           pvc->iov_len=cs->header_len;
-          
+                 
           };
 
 void http_handler::destroy_conn(conn* p){

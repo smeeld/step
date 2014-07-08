@@ -1,9 +1,9 @@
 CC=c++
 DST=eps
-CFL=-std=c++0x -lpthread
+CFL=-std=c++0x -lpthread -g
 HED=-I`pwd`
-PRE=main.o serv.o hd.o http_handler.o
-SRC=serv.cpp hd.cpp main.cpp http_handler.cpp
+PRE=http_handler.o main.o
+SRC=main.cpp http_handler.cpp
 all: $(PRE)
 	$(CC) -o $(DST) $(PRE) $(CFL)
 $(PRE): $(SRC)
