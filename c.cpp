@@ -6,25 +6,24 @@
 
 template<typename Pos, typename  Cmp> 
   
-inline  void srt(Pos pt, Pos pm, Cmp cmp){
+  void srt(Pos pt, Pos pm, Cmp cmp){
   
    Pos tmp=pt, md=pt, sp;
-   int n=0;
-   while(tmp==pt){ if(md==pm){  return; };
-         
-           sp=pm;
-          
-         while(sp!=tmp){
-         
-     while(cmp(*tmp, *md)){ ++tmp; if(tmp==sp){ n=1; break; }; };
-           if(n) break;
-     do{ --sp; if(tmp==sp){ n=1; break; }; }while(cmp(*md, *sp));
-              if(n) break;
-           std::swap(*tmp, *sp);
-     ++tmp;
-    };  ++md;
-  };
    
+   do{
+       if(md==pm)  return;
+         sp=pm;
+          while(sp!=tmp){
+          if(cmp(*tmp, *md)){ ++tmp; continue; }; 
+              
+          while(--sp!=tmp){   
+          if(cmp(*md, *sp)) continue;
+          std::swap(*tmp, *sp);
+         ++tmp; break;
+         };
+       };
+     ++md;
+    }while(tmp==pt);
       srt(pt, tmp, cmp);
       srt(tmp, pm, cmp);
  };
@@ -34,25 +33,25 @@ template<typename Pos>
   void srt(Pos pt, Pos pm){
   
    Pos tmp=pt, md=pt, sp;
-   int n=0;
    
-   while(tmp==pt){ if(md==pm){  return; };
-         
-           sp=pm;
-          
+   do{
+       if(md==pm)  return;
+         sp=pm;       
          while(sp!=tmp){
-         
-     while(*tmp < *md){ ++tmp; if(tmp==sp){ n=1; break; }; };
-           if(n) break;
-     do{ --sp; if(tmp==sp){ n=1; break; }; }while(*md < *sp);
-              if(n) break;
-           std::swap(*tmp, *sp);
-     ++tmp;
-     };  ++md;
-    };
+          if(cmp(*tmp, *md)){ ++tmp; continue; }; 
+              
+          while(--sp!=tmp){   
+          
+          if(cmp(*md, *sp)) continue;
+          std::swap(*tmp, *sp);
+         ++tmp; break;
+         };
+       };
+     ++md;
+    }while(tmp==pt);
  srt(pt, tmp);
  srt(tmp, pm);
- };
+};
 
 
 int cmp(int a, int b){ return a<b; }; 
@@ -64,6 +63,6 @@ int main(int a , char** s){
 
  v.push_back(random());
 };
-srt(v.begin(), v.end());
+srt(v.begin(), v.end(), cmp);
  std::copy(v.begin(), v.begin()+std::stoi(s[2]), std::ostream_iterator<int>(std::cout, "\n"));
 };
