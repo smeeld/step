@@ -8,7 +8,15 @@
 #define REQ_WAIT 5
 #define REQ_SENDFILE 1
 #define REQ_SENDMSG  2
-class conn{
+class conn_ptr{
+ public:
+conn_ptr(){};
+ virtual ~conn_ptr(){};
+ conn_ptr* next;
+ conn_ptr* prev;
+ int fd;
+};
+class conn: public conn_ptr{
 public:
 conn()
  : keep(1), hand(0), size_read(0),
@@ -21,7 +29,6 @@ conn()
      msg.msg_control=NULL;
      msg.msg_controllen=0; };
 ~conn(){};
-int fd;
 int index;
 uint8_t state;
 int keep;

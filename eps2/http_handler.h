@@ -80,6 +80,7 @@ typedef std::unordered_map<key_mp, cache_t, hash_mp<key_mp>, cmp<key_mp> > cache
  void handler(conn* s);
  void destroy_conn(conn*);
  conn* init_conn();
+conn* init_conn(conn*);
  cache_mp cache_map;
  };
 

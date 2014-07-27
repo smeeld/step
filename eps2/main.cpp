@@ -46,7 +46,7 @@ if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 2; };
   
 
  listen(list_sock,1024);
- /*
+ 
  if((pid=fork())>0){ int fd=open("/var/run/ser.pid", O_RDWR | O_CREAT);
            char bs[16]; sprintf(bs,"%d",pid);
           write(fd,bs,strlen(bs));
@@ -66,11 +66,11 @@ for(i = n-1; i >= 0; --i) {
 dup(std);
 dup(std);
  setuid(p->pw_uid);
- setgid(p->pw_gid);*/
+ setgid(p->pw_gid);
  sigaction(SIGINT, &sgc, NULL );
  sigaction(SIGTERM, &sgc, NULL);
 
- http_serv vptr(list_sock, 8);
+ http_serv vptr(list_sock);
  
  run=1;
 

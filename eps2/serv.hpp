@@ -3,21 +3,23 @@
 template <typename T>
 class serv{
 typedef std::unordered_map<int, conn* > conn_mp;
-/*template <typename U>*/
+
 struct que{
 
  que(const T& _t, int s, int sck, serv<T>* sr)
-  : efd(s), sock(sck), hand(_t), srv(sr), evsize(1024){};
+  : efd(s), hand(_t), srv(sr), evsize(1024){
+              ptr.fd=sck; ptr.next=NULL; ptr.prev=NULL; };
  que(const que&)=delete;
- ~que(){int s;
-  auto it=conn_map.begin();
-   while(it!=conn_map.end()){
-    s=it->first;
+ ~que(){int s; conn_ptr* tm=ptr.next, *tmp;
+   while(tm){ 
+    s=tm->fd;
     epoll_ctl(efd, EPOLL_CTL_DEL, s, NULL);
      close(s);
-    delete it->second; it++;
+    tmp=tm->next;
+    delete tm; tm=tmp; 
       };
     close(efd);
+  while(cache_count){ delete cache_ptr[--cache_count]; };
   pthread_cancel(pt);
   };
 
@@ -29,8 +31,11 @@ struct que{
  pthread_t pt;
 T hand;
 epv ev, dev[1024];
-int sock, efd, evsize;
+int  efd, evsize;
 serv<T>* srv;
+conn_ptr ptr;
+conn* cache_ptr[1024];
+size_t cache_count;
 };
 public:
 serv(int s=0, int m=8, T const & _t=T()): qcount(0){
@@ -44,7 +49,7 @@ do{
    p=new que(_t, fd, sck, this);
       }catch(std::bad_alloc& c){ close(fd); break; };
    pev=&p->ev;
-    pev->data.fd=sck;
+    pev->data.ptr=&p->ptr;
     pev->events=EPOLLIN;
    epoll_ctl(fd, EPOLL_CTL_ADD, sck, pev);
    qlist[qcount++]=p;
@@ -95,8 +100,8 @@ template <typename T>
             
             size_t cnt=c->msg.msg_iovlen;
          if(cnt){ i=0;
-       do{ errno=0; i=sendmsg(c->fd, &c->msg, 0);
-  
+        errno=0; i=sendmsg(c->fd, &c->msg, 0);
+         do{
            if(i<0){
                  if(errno==EINTR) continue;
                    if(errno!=EAGAIN) shutdown(c->fd,SHUT_RDWR);
@@ -108,8 +113,8 @@ template <typename T>
                    if(cnt) return 0;
                    if(c->type==REQ_SENDFILE)  c->size_tr=0;
                     i=1; break;
-                    }while(1);
-                 };
+                     }while(1);
+                   };
 
     if(c->type==REQ_SENDFILE){
         size_t bsz=c->buf_size; 
@@ -125,10 +130,10 @@ template <typename T>
                     }while(1);
                  };
              
-          if(i){ if(c->type==REQ_SENDFILE) close(c->file_fd);
+          if(i){ if(c->type==REQ_SENDFILE) close(c->file_fd);shutdown(c->fd,SHUT_RDWR);/*
              if(c->keep){ 
                
-              c->size_recv=0; c->state=REQ_WAIT;c->size_tr=0; i=1; }else{  shutdown(c->fd,SHUT_RDWR); i=0; };
+              c->size_recv=0; c->state=REQ_WAIT;c->size_tr=0; i=1; }else{  shutdown(c->fd,SHUT_RDWR); i=0; };*/i=0;
                  };
        return i;
       };
@@ -158,12 +163,12 @@ template <typename T>
 
 template <typename T>
 void serv<T>::reactor(serv<T>::que& qs){
- 
- unsigned int nm=0;
- conn* p;
  que& q=qs;
+ unsigned int nm=0;
+  conn_ptr* gptr=&q.ptr, *pnt;
+ conn* p;
  epv ev, *pev, *bev=q.dev;
- int cur, s, i, sck=q.sock, efd=q.efd; 
+ int cur, s, i, sck=gptr->fd, efd=q.efd, sz=q.evsize;
    while(1)
 {  
   
@@ -174,45 +179,53 @@ void serv<T>::reactor(serv<T>::que& qs){
      
    };
   
-  cur=epoll_wait(q.efd, q.dev, q.evsize, (nm>0) ? 0: -1);
+  cur=epoll_wait( efd, bev, sz, (nm>0) ? 0: -1);
     
     for(i=0; i<cur; i++)
      { 
-         pev=bev+i; s=bev[i].data.fd; p=q.conn_map[s];
-         
-      
+         pev=bev+i; pnt=static_cast<conn_ptr*>(pev->data.ptr);
+         s=pnt->fd;
           if ((pev->events & EPOLLERR) || (pev->events & EPOLLHUP) && (pev->events & EPOLLRDHUP))
 	         { 
-              q.conn_map.erase(s);    
-           epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
-              close(s);
-                q.hand.destroy_conn(p);
+              if(s==sck) continue; 
+             p=static_cast<conn*>(pnt);  
+           if(p->prev) p->prev->next=p->next;
+            if( p->next) p->next->prev=p->prev;
+              epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
+               if(q.cache_count==1024){
+                q.hand.destroy_conn(p); 
+                       }else{
+                          p->~conn();  p=q.hand.init_conn(p); q.cache_ptr[q.cache_count++]=p; };
+                  close(s);
                  --nm; continue; 
                       };
 
             if(s==sck){ 
-                    
-          if((s=accept(sck,(struct sockaddr*)&sockddr,&socklen))<0)  continue;
+                   
+          if((s=accept(sck,(struct sockaddr*)&sockddr,&socklen))<0) continue;
                           
               set_non_block(s);
                    
-                    ev.data.fd=s;
-                    ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
                  try{
-                  if(epoll_ctl(efd, EPOLL_CTL_ADD,s, &ev)<0) throw 1;
-                      p=q.hand.init_conn(); p->fd=s;
-                      if(p==NULL) throw 1;
-                       std::pair<conn_mp::iterator, bool> it=q.conn_map.insert(std::make_pair(s, p));        
-                        if(it.second==false) throw 2; }catch(int s){ 
+                    if(q.cache_count==0){
+                      p=q.hand.init_conn(); }else{ p=q.cache_ptr[--q.cache_count]; };
+                      if(p==NULL) throw 1; p->fd=s;
+                      pnt=static_cast<conn_ptr*>(p);
+                      ev.data.ptr=static_cast<void*>(pnt);
+                      ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
+                      if(epoll_ctl(efd, EPOLL_CTL_ADD,s, &ev)<0) throw 2;
+                     pnt->next=gptr->next; pnt->prev=gptr; gptr->next=pnt;
+                      if(pnt->next) pnt->next->prev=pnt;
+                           }catch(int s){ 
                             switch(s){
                             case 2 : q.hand.destroy_conn(p); break;
                             default : break;
                             };
-                         epoll_ctl(efd,EPOLL_CTL_DEL,s,&ev); close(s);
-                         }; ++nm;
+                        
+                         };  ++nm;
                         continue;
                         }
-               else {
+               else {  p=static_cast<conn*>(pnt);
                         if(pev->events & EPOLLIN){
                                if(read_s(p)) continue;
                                    q.hand.handler(p);
