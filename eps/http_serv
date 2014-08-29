@@ -1,0 +1,3 @@
+#include <http_handler.h>
+typedef serv<http_handler> http_serv;
+typedef Serv<http_handler> Http;
