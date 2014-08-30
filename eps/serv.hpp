@@ -237,19 +237,10 @@ void serv<T>::reactor(serv<T>::que& qs){
                  p=static_cast<conn*>(pnt);
                       
                         if((pev->events & EPOLLIN) && (p->state & REQ_READ)){
-                           if(read_s(p)){
-                             q.hand.handler(p);
-                             if(p->state & REQ_SHUT){ shutdown(p->fd, SHUT_RDWR); continue; }
-                               if(p->state & REQ_WAIT){
-                                time(&p->tm);
-                              list_del(static_cast<conn_ptr*>(p));
-                              list_in(gptr->prev, static_cast<conn_ptr*>(p));
-                              ++wnm; continue;
-                               };   
-                              };  
+                           if(read_s(p)) q.hand.handler(p);
                             };
                  if((pev->events & EPOLLOUT) && (p->state & REQ_WRITE)){
-                           if(write_s(p)){
+                           if(write_s(p)){ 
                             q.hand.handler(p);
                             if(p->state & REQ_SHUT){ shutdown(p->fd, SHUT_RDWR); continue; }
                               if(p->state & REQ_WAIT){
