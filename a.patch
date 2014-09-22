@@ -1,0 +1,138 @@
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/arch/Kconfig ../linux-3.10.0-123.4.4.el7/arch/Kconfig
+4d3
+< 
+Only in ../linux-3.10.0-123.4.4.el7/arch: Kconfig~
+Only in ../linux-3.10.0-123.4.4.el7/arch/x86: Kbuild~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/arch/x86/Kconfig ../linux-3.10.0-123.4.4.el7/arch/x86/Kconfig
+299a300,305
+> config CHECK_REGISTERS
+> 	bool "Enable Registers check"
+> 	---help---
+> 	  This option enables the checking value of
+> 	  register cr3, cs, rax, rdi after system call is done.
+> 
+Only in ../linux-3.10.0-123.4.4.el7/arch/x86: Kconfig~
+Only in ../linux-3.10.0-123.4.4.el7/arch/x86/platform/geode: Makefile~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/arch/x86/platform/Makefile ../linux-3.10.0-123.4.4.el7/arch/x86/platform/Makefile
+13a14
+> obj-y	+= registers/
+Only in ../linux-3.10.0-123.4.4.el7/arch/x86/platform: Makefile~
+Only in ../linux-3.10.0-123.4.4.el7/arch/x86/platform: registers
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/arch/x86/syscalls/syscall_64.tbl ../linux-3.10.0-123.4.4.el7/arch/x86/syscalls/syscall_64.tbl
+323c323
+< 
+---
+> 314     64      check_registers         sys_check_registers
+Only in ../linux-3.10.0-123.4.4.el7/arch/x86/syscalls: syscall_64.tbl~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/fs/eventpoll.c ../linux-3.10.0-123.4.4.el7/fs/eventpoll.c
+1096,1098c1096,1101
+< 
+< 	if (epi->nwait >= 0 && (pwq = kmem_cache_alloc(pwq_cache, GFP_KERNEL))) {
+< 		init_waitqueue_func_entry(&pwq->wait, ep_poll_callback);
+---
+>         int smp=smp_processor_id();
+>          printk(KERN_INFO "Insert On Processor Id=%d\n", smp);
+>             if(epi->nwait >= 0 && (pwq = kmem_cache_alloc(pwq_cache, GFP_KERNEL))){ 
+>                 wait_queue_t* wt=&pwq->wait;
+> 		init_waitqueue_func_entry(wt, ep_poll_callback);
+>                 wt->flags=((smp+1)<<3);
+1101c1104
+< 		add_wait_queue(whead, &pwq->wait);
+---
+> 		add_wait_queue(whead, wt);
+1311c1314
+< 
+---
+>         printk(KERN_INFO "INSERRT IN EPOLL %d\n", smp_processor_id());
+Only in ../linux-3.10.0-123.4.4.el7/fs: eventpoll.c~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/include/linux/syscalls.h ../linux-3.10.0-123.4.4.el7/include/linux/syscalls.h
+849a850,852
+> 
+> asmlinkage long sys_check_registers(unsigned long flag);
+> 
+Only in ../linux-3.10.0-123.4.4.el7/include/linux: syscalls.h~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/include/net/sock.h ../linux-3.10.0-123.4.4.el7/include/net/sock.h
+1609c1609
+< 
+---
+>  extern void                     sock_def_readable_balance(struct sock *, int);
+Only in ../linux-3.10.0-123.4.4.el7/include/net: sock.h~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/net/core/sock.c ../linux-3.10.0-123.4.4.el7/net/core/sock.c
+2177a2178,2235
+> static void wake_up_on_balance(wait_queue_head_t *q, unsigned int mode,
+>                           int nr_exclusive, int wake_flags, void *key)
+>   {       int cnt=0;
+>           wait_queue_t *curr, *next;
+>           int smp=smp_processor_id()+1;
+>           printk(KERN_INFO "Try wake on Processor Id=%d\n", smp);
+>           list_for_each_entry_safe(curr, next, &q->task_list, task_list) {
+>                   unsigned flags = curr->flags;
+>                   printk(KERN_INFO "Try Find In Cicle UP, Flags IS=%d\n", flags); 
+>               if((smp<<3)==flags){
+>                 curr->func(curr, mode, wake_flags, key);
+>                    cnt=1;
+>                 printk(KERN_INFO "Finded In Cicle UP, Flags IS=%d\n", flags); 
+>                     return;
+>               };
+>           };
+> 
+>     if(cnt==0){ 
+>         list_for_each_entry_safe(curr, next, &q->task_list, task_list) {
+>                   unsigned flags = curr->flags;
+>   
+>                   if (curr->func(curr, mode, wake_flags, key) &&
+>                                   (flags & WQ_FLAG_EXCLUSIVE) && !--nr_exclusive)
+>                           break;
+>              };
+>            };
+>          }
+> 
+> void wake_up_sync_balance(wait_queue_head_t *q, unsigned int mode,
+>                          int nr_exclusive, void *key)
+>  {
+>          unsigned long flags;
+>          int wake_flags = 1;
+>  
+>          if (unlikely(!q))
+>                  return;
+>  
+>          if (unlikely(nr_exclusive != 1))
+>                  wake_flags = 0;
+>  
+>          spin_lock_irqsave(&q->lock, flags);
+>           wake_up_on_balance(q, mode, nr_exclusive, wake_flags, key );
+>          spin_unlock_irqrestore(&q->lock, flags);
+>   }
+> 
+>  void sock_def_readable_balance(struct sock *sk, int len)
+> {
+> 	struct socket_wq *wq;
+> 
+> 	rcu_read_lock();
+> 	wq = rcu_dereference(sk->sk_wq);
+> 	if (wq_has_sleeper(wq))
+> 		wake_up_sync_balance(&wq->wait, TASK_INTERRUPTIBLE, 1, (void*)( POLLIN | POLLPRI |
+> 						POLLRDNORM | POLLRDBAND));
+> 	sk_wake_async(sk, SOCK_WAKE_WAITD, POLL_IN);
+> 	rcu_read_unlock();
+> }
+> 
+2185,2186c2243,2244
+< 		wake_up_interruptible_sync_poll(&wq->wait, POLLIN | POLLPRI |
+< 						POLLRDNORM | POLLRDBAND);
+---
+>          wake_up_interruptible_sync_poll(&wq->wait, POLLIN |
+> 						POLLPRI | POLLRDNORM | POLLRDBAND);
+2190a2249,2250
+> 
+> 
+2202a2263
+>                 
+2205,2206d2265
+< 
+< 		/* Should agree with poll, otherwise some programs break */
+Only in ../linux-3.10.0-123.4.4.el7/net/core: sock.c~
+diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/net/ipv4/af_inet.c ../linux-3.10.0-123.4.4.el7/net/ipv4/af_inet.c
+234a235
+>                 sk->sk_data_ready=sock_def_readable_balance;
+Only in ../linux-3.10.0-123.4.4.el7/net/ipv4: af_inet.c~
