@@ -1,26 +1,27 @@
 #include <base.h>
-
+#include <sched.h>
 template <typename T>
 class serv{
 typedef std::unordered_map<int, conn* > conn_mp;
 
 struct que{
 
- que(const T& _t, int s, int sck, serv<T>* sr)
-  : efd(s), hand(_t), srv(sr), evsize(1024){
+ que(const T& _t, int s, int sck, serv<T>* sr, uint8_t nm)
+  : efd(s), hand(_t), srv(sr), evsize(1024), number(nm){
               ptr.fd=sck; ptr.next=&ptr; ptr.prev=&ptr; };
  que(const que&)=delete;
  ~que(){int s; conn_ptr* tm=ptr.next, *tmp, *hd=&ptr;
    while(tm!=hd){ 
     s=tm->fd;
-    epoll_ctl(efd, EPOLL_CTL_DEL, s, NULL);
+     epoll_ctl(efd, EPOLL_CTL_DEL, s, NULL);
      close(s);
     tmp=tm->next;
     delete tm; tm=tmp; 
       };
+  if(efd)
     close(efd);
   while(cache_count){ delete cache_ptr[--cache_count]; };
-  pthread_cancel(pt);
+  
   };
 
  conn_mp conn_map;
@@ -36,6 +37,7 @@ serv<T>* srv;
 conn_ptr ptr;
 conn* cache_ptr[1024];
 size_t cache_count;
+uint8_t number;
 
   };
 public:
@@ -45,14 +47,10 @@ serv(int s=0, int m=8, T const & _t=T()): qcount(0){
  qlist=(que**)malloc(sizeof(que*)*m);
   if(qlist==NULL) return;
 do{
- if((fd=epoll_create(1024))<0) break;
+
   try{ 
-   p=new que(_t, fd, sck, this);
+   p=new que(_t, 0, sck, this, qcount);
       }catch(std::bad_alloc& c){ close(fd); break; };
-   pev=&p->ev;
-    pev->data.ptr=&p->ptr;
-    pev->events=EPOLLIN;
-   epoll_ctl(fd, EPOLL_CTL_ADD, sck, pev);
    qlist[qcount++]=p;
    pthread_create(&p->pt, NULL, th, (void*)p);
     
@@ -64,7 +62,11 @@ do{
 
 serv(const serv&)=delete;
 
- ~serv(){ while(qcount){ delete qlist[--qcount]; }; };
+ ~serv(){ que* p; while(qcount){
+         p=qlist[--qcount]; 
+         if(p){ pthread_cancel(p->pt); delete p; };
+        };
+     };
 
 private:
 int sock;
@@ -171,12 +173,29 @@ template <typename T>
 template <typename T>
 void serv<T>::reactor(serv<T>::que& qs){
  que& q=qs;
+ cpu_set_t cp;
+ CPU_ZERO(&cp);
+ CPU_SET(q.number, &cp);
+ sched_setaffinity(0, sizeof(cpu_set_t), &cp); 
  unsigned int nm=0, wnm=0, cnt;
   conn_ptr* gptr=&q.ptr, *pnt;
  conn* p;
  epv ev, *pev, *bev=q.dev;
- int cur, s, i, sck=gptr->fd, efd=q.efd, sz=q.evsize;
+ int cur, s, i, sck=gptr->fd, efd, sz=q.evsize;
  time_t tm;
+
+    ev.data.ptr=gptr;
+    ev.events=EPOLLIN;
+ 
+  do{
+   if((efd=epoll_create(1024))>0){ 
+  if( epoll_ctl(efd, EPOLL_CTL_ADD, sck, &ev)==0) break; };
+      q.efd=0;
+      que** p=qlist+q.number;
+        delete *p; *p=NULL;
+        pthread_exit(0);
+    }while(1);
+ q.efd=efd;
    while(1)
 {  
  cnt=wnm; pnt=gptr->prev;
@@ -184,7 +203,7 @@ void serv<T>::reactor(serv<T>::que& qs){
  p=static_cast<conn*>(pnt);
  time(&tm);
   if(p->state & REQ_WAIT){
-     if((tm-p->tm)>p->keep_count){ std::cout<<"Ok Del ptrm="<<p->tm<<"And Old="<<tm<<"\n"; --wnm; shutdown(p->fd, SHUT_RDWR); };
+     if((tm-p->tm)>p->keep_count){  --wnm; shutdown(p->fd, SHUT_RDWR); };
        };
     pnt=pnt->prev; --cnt;
    }
@@ -196,7 +215,7 @@ void serv<T>::reactor(serv<T>::que& qs){
          s=pnt->fd;
           if ((pev->events & EPOLLERR) || (pev->events & EPOLLHUP) && (pev->events & EPOLLRDHUP))
 	         { 
-              if(s==sck) continue;
+              if(s==sck) continue; 
              p=static_cast<conn*>(pnt);  
              list_del(static_cast<conn_ptr*>(p));
               epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
