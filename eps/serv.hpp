@@ -113,7 +113,6 @@ template <typename T>
   long i; 
              
             size_t cnt=c->msg.msg_iovlen;
-           if(cnt==0 && c->buf_size==0){ c->state &= ~REQ_WRITE;  return 0; };
          if(cnt){ i=0;
         errno=0; i=sendmsg(c->fd, &c->msg, 0);
          do{
