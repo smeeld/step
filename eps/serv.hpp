@@ -110,7 +110,7 @@ if (ioctl(s, FIONBIO, &fl) &&
 
 template <typename T>
  int serv<T>::write_s(conn* c){
-  size_t i; 
+  long i; 
              
             size_t cnt=c->msg.msg_iovlen;
            if(cnt==0 && c->buf_size==0){ c->state &= ~REQ_WRITE;  return 0; };
@@ -133,8 +133,8 @@ template <typename T>
 
     if(c->type==REQ_SENDFILE){
         size_t bsz=c->buf_size;
-        i=c->size_tr;
-        do{errno=0; i=sendfile(c->fd, c->file_fd, 0, bsz-i);
+        do{errno=0; i=c->size_tr;
+          i=sendfile(c->fd, c->file_fd, 0, bsz-i);
            if(i<0){ 
                  if(errno==EINTR) continue;
                   if(errno!=EAGAIN) shutdown(c->fd,SHUT_RDWR);
@@ -154,7 +154,7 @@ template <typename T>
 
 template <typename T>
  int serv<T>::read_s(conn* c){ 
-   size_t i;
+   long i;
         if(c->state & REQ_SHUT) return 0;
     do{ errno=0; i=recv(c->fd, c->buf_recv, 1024, 0); 
         
