@@ -41,9 +41,10 @@ uint8_t number;
 
   };
 public:
-serv(int s=0, int m=8, T const & _t=T()): qcount(0){
+serv(int s=0, int m=0, T const & _t=T()): qcount(0){
   int fd, i=0, sck=s;
   epv* pev; que* p;
+ if(m==0) m=(int) sysconf(_SC_NPROCESSORS_ONLN);
  qlist=(que**)malloc(sizeof(que*)*m);
   if(qlist==NULL) return;
 do{
@@ -176,7 +177,7 @@ void serv<T>::reactor(serv<T>::que& qs){
  cpu_set_t cp;
  CPU_ZERO(&cp);
  CPU_SET(q.number, &cp);
- sched_setaffinity(0, sizeof(cpu_set_t), &cp); 
+ sched_setaffinity(0, sizeof(cpu_set_t), &cp);
  unsigned int nm=0, wnm=0, cnt;
   conn_ptr* gptr=&q.ptr, *pnt;
  conn* p;
@@ -229,8 +230,7 @@ void serv<T>::reactor(serv<T>::que& qs){
 
             if(s==sck){ 
                    
-          if((s=accept(sck,(struct sockaddr*)&sockddr,&socklen))<0) continue;
-                          
+          if((s=accept(sck,(struct sockaddr*)&sockddr,&socklen))<0) continue;         
               set_non_block(s);
                   
                  try{
