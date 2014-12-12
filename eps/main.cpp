@@ -23,19 +23,19 @@ struct sigaction sgc;
   
   try{
   
-  if((p=getpwnam("g"))==NULL){ throw 1; };
+  if((p=getpwnam("g"))==NULL) throw 1;
   
-if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0){  throw 2; };
+if((list_sock=socket(AF_INET,SOCK_STREAM,0))<0) throw 2;
   
- if(bind(list_sock,(struct sockaddr*)&socket_s,len)<0){ throw 3; };
+ if(bind(list_sock,(struct sockaddr*)&socket_s,len)<0) throw 3;
     }
   catch(int er){ 
  
               switch(er){
 
-               case 1 : std::cout<<" Not User named g please do this user"<<std::endl; exit(-1);
-               case 2 : std::cout<<" Not Create Socket"<<std::endl; exit(-1); 
-               case 3 : std::cout<<" Not Bind Socket"<<std::endl; close(list_sock); exit(-1); 
+               case 1 : std::cout<<" Not User named g please do this user"<<std::endl; return -1;
+               case 2 : std::cout<<" Not Create Socket"<<std::endl; return -1; 
+               case 3 : std::cout<<" Not Bind Socket"<<std::endl; close(list_sock); return -1; 
                };
              };
  i=1;
