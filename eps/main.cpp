@@ -75,7 +75,7 @@ dup(std);
  run=1;
 
 while(run){
- sleep(10);
+ sleep(10); /* drummer loop there */
   }; 
 
  };
