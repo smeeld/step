@@ -113,7 +113,7 @@ template <typename T>
   size_t i; 
              
             size_t cnt=c->msg.msg_iovlen;
-           if(cnt==0 || c->buf_size==0){ c->state &= ~REQ_WRITE;  return 0; };
+           if(cnt==0 && c->buf_size==0){ c->state &= ~REQ_WRITE;  return 0; };
          if(cnt){ i=0;
         errno=0; i=sendmsg(c->fd, &c->msg, 0);
          do{
@@ -132,8 +132,9 @@ template <typename T>
                    };
 
     if(c->type==REQ_SENDFILE){
-        size_t bsz=c->buf_size; 
-        do{errno=0; i=sendfile(c->fd, c->file_fd, 0, bsz);
+        size_t bsz=c->buf_size;
+        i=c->size_tr;
+        do{errno=0; i=sendfile(c->fd, c->file_fd, 0, bsz-i);
            if(i<0){ 
                  if(errno==EINTR) continue;
                   if(errno!=EAGAIN) shutdown(c->fd,SHUT_RDWR);
