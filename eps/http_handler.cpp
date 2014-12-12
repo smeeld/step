@@ -252,12 +252,15 @@ void http_handler::destroy_conn(conn* p){
  };
 
 conn* http_handler::init_conn(){
-  http_conn* p=new http_conn();
+  http_conn* p;
+  try{
+  p=new http_conn;
+     }catch(std::bad_alloc& s){ return nullptr; };
    return static_cast<conn*>(p);
   };
 
 conn* http_handler::init_conn(conn* p){
-   http_conn* pp=new (static_cast<http_conn*>(p)) http_conn();
+   http_conn* pp=new (static_cast<http_conn*>(p)) http_conn;
    return static_cast<conn*>(pp);
   };
   

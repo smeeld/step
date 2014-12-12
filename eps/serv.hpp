@@ -232,24 +232,16 @@ void serv<T>::reactor(serv<T>::que& qs){
                    
           if((s=accept(sck,(struct sockaddr*)&sockddr,&socklen))<0) continue;         
               set_non_block(s);
-                  
-                 try{
-                    if(q.cache_count==0)
-                      p=q.hand.init_conn();
-                    else p=q.cache_ptr[--q.cache_count];
-                      if(p==NULL) throw 1; p->fd=s;
+                    if(q.cache_count==0)  p=q.hand.init_conn();
+                        else p=q.cache_ptr[--q.cache_count];
+                    if(p==nullptr){ close(s); continue; };
+                      p->fd=s;
                       pnt=static_cast<conn_ptr*>(p);
                       ev.data.ptr=pnt;
                       ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
-                      if(epoll_ctl(efd, EPOLL_CTL_ADD,s, &ev)<0) throw 2;
+                      if(epoll_ctl(efd, EPOLL_CTL_ADD, s, &ev)<0){ close(s); q.hand.destroy_conn(p); continue; };
                       list_in(gptr, pnt);
-                           }catch(int s){ 
-                            switch(s){
-                            case 2 : q.hand.destroy_conn(p); break;
-                            default : break;
-                            };
-                        
-                         };  ++nm;
+                         ++nm;
                   q.hand.handler(p);
                         continue;
                         }
