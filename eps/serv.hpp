@@ -133,11 +133,12 @@ template <typename T>
 
     if(c->type==REQ_SENDFILE){
         size_t bsz=c->buf_size;
+        if(c->file_fd==0){ shutdown(c->fd, SHUT_RDWR); return 0; };
         do{errno=0; i=c->size_tr;
           i=sendfile(c->fd, c->file_fd, 0, bsz-i);
            if(i<0){ 
                  if(errno==EINTR) continue;
-                  if(errno!=EAGAIN) shutdown(c->fd,SHUT_RDWR);
+                  if(errno!=EAGAIN){ close(c->file_fd); shutdown(c->fd,SHUT_RDWR); };
                       return 0;
                     }; 
                    c->size_tr+=i; i=0;
