@@ -19,7 +19,7 @@ conn_ptr(){};
 class conn: public conn_ptr{
 public:
 conn()
- : keep(1), hand(0), size_read(0),
+ : keep(1), hand(0), size_rd(0),
     size_tr(0), size_recv(0), state(0),
    keep_count(1), q_nm(0), buf_size(0)
    { msg.msg_name=NULL;
@@ -40,7 +40,7 @@ std::ostringstream ost;
 int8_t keep_count;
 size_t size_tr;
 size_t size_recv;
-size_t size_read;
+size_t size_rd;
 char* buf_send;
 size_t buf_size;
 uint8_t q_nm;

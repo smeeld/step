@@ -155,20 +155,21 @@ template <typename T>
 
 template <typename T>
  int serv<T>::read_s(conn* c){ 
-   long i;
+   long i; size_t tmp=c->size_rd;
         if(c->state & REQ_SHUT) return 0;
-    do{ errno=0; i=recv(c->fd, c->buf_recv, 1024, 0); 
+    do{ errno=0;
+       if(tmp==0) i=1024;
+        else i=tmp-c->size_recv;
+       i=recv(c->fd, c->buf_recv, i, 0); 
         
        if(i<0 || i==0){ if(errno==EINTR)  continue; 
          if(errno==EAGAIN) return 0;
         shutdown(c->fd, SHUT_RDWR); c->state=REQ_SHUT; return 0;
              };
-            c->size_recv+=i;
+            if((c->size_recv+=i) < tmp) i=0;
+                      else i=1; 
             c->hand=REQ_READ;
-                i=1;
              break; }while(1);
-  
-     if(c->size_read){ if(c->size_recv!=c->size_read); i=0; };
         
         return i;
         };
