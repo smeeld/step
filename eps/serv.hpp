@@ -114,8 +114,9 @@ template <typename T>
              
             size_t cnt=c->msg.msg_iovlen;
          if(cnt){ i=0;
-        errno=0; i=sendmsg(c->fd, &c->msg, 0);
-         do{
+        do {
+           errno=0; i=sendmsg(c->fd, &c->msg, 0);
+         
            if(i<0){
                  if(errno==EINTR) continue;
                    if(errno!=EAGAIN) shutdown(c->fd, SHUT_RDWR);
