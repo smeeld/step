@@ -78,9 +78,8 @@ typedef std::unordered_map<key_mp, cache_t, hash_mp<key_mp>, cmp<key_mp> > cache
  int cacher(const char*, cache_t& );
  void error_hand(http_conn*, uint8_t);
  void handler(conn* s);
- void destroy_conn(conn*);
- conn* init_conn();
-conn* init_conn(conn*);
+ conn* create_conn();
+conn* create_conn(conn*);
  cache_mp cache_map;
  };
 

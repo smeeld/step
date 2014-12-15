@@ -21,7 +21,8 @@ public:
 conn()
  : keep(1), hand(0), size_rd(0),
     size_tr(0), size_recv(0), state(0),
-   keep_count(1), q_nm(0), buf_size(0)
+   keep_count(1), q_nm(0), buf_size(0),
+   current_rsize(1024), buf_recv(default_buf)
    { msg.msg_name=NULL;
      msg.msg_namelen=0;
      msg.msg_iov=iov;
@@ -34,13 +35,15 @@ uint8_t state;
 int keep;
 int type;
 uint8_t hand;
-char buf_recv[1024];
+char default_buf[1024];
+char* buf_recv;
 int file_fd; 
 std::ostringstream ost;
 int8_t keep_count;
 size_t size_tr;
 size_t size_recv;
 size_t size_rd;
+size_t current_rsize;
 char* buf_send;
 size_t buf_size;
 uint8_t q_nm;

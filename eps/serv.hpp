@@ -92,7 +92,8 @@ static void* th(void*);
 void list_del(conn_ptr* p){
  p->next->prev=p->prev;
  p->prev->next=p->next;
- };  
+ };
+void destroy(que& q, conn* pc);
  que** qlist;
  std::mutex mtc;
  struct sockaddr_in sockddr;
@@ -158,7 +159,7 @@ template <typename T>
    long i; size_t tmp=c->size_rd;
         if(c->state & REQ_SHUT) return 0;
     do{ errno=0;
-       if(tmp==0) i=1024;
+       if(tmp==0) i=c->current_rsize;
         else i=tmp-c->size_recv;
        i=recv(c->fd, c->buf_recv, i, 0); 
         
@@ -172,6 +173,11 @@ template <typename T>
         
         return i;
         };
+template <typename T>
+ void serv<T>::destroy(serv<T>::que& q, conn* p){
+  if(q.cache_count<1024){ p->~conn(); q.cache_ptr[q.cache_count++]=p; }
+     else delete p;
+    };
 
 template <typename T>
 void serv<T>::reactor(serv<T>::que& qs){
@@ -222,10 +228,7 @@ void serv<T>::reactor(serv<T>::que& qs){
              p=static_cast<conn*>(pnt);  
              list_del(static_cast<conn_ptr*>(p));
               epoll_ctl(efd, EPOLL_CTL_DEL, s, pev);
-               if(q.cache_count==1024){
-                q.hand.destroy_conn(p); 
-                       }else{
-                          p->~conn();  p=q.hand.init_conn(p); q.cache_ptr[q.cache_count++]=p; };
+               destroy(q, p);
                   close(s);
                  --nm; continue; 
                       };
@@ -234,14 +237,17 @@ void serv<T>::reactor(serv<T>::que& qs){
                    
           if((s=accept(sck,(struct sockaddr*)&sockddr,&socklen))<0) continue;         
               set_non_block(s);
-                    if(q.cache_count==0)  p=q.hand.init_conn();
-                        else p=q.cache_ptr[--q.cache_count];
+                    if(q.cache_count==0)  p=q.hand.create_conn();
+                        else{
+                             p=q.cache_ptr[--q.cache_count];
+                             p=q.hand.create_conn(p);
+                             };				
                     if(p==nullptr){ close(s); continue; };
                       p->fd=s;
                       pnt=static_cast<conn_ptr*>(p);
                       ev.data.ptr=pnt;
                       ev.events=EPOLLIN |  EPOLLOUT | EPOLLET | EPOLLERR | EPOLLRDHUP | EPOLLRDHUP;
-                      if(epoll_ctl(efd, EPOLL_CTL_ADD, s, &ev)<0){ close(s); q.hand.destroy_conn(p); continue; };
+                      if(epoll_ctl(efd, EPOLL_CTL_ADD, s, &ev)<0){ close(s); destroy(q, p); continue; };
                       list_in(gptr, pnt);
                          ++nm;
                   q.hand.handler(p);
