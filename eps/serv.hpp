@@ -175,8 +175,8 @@ template <typename T>
         };
 template <typename T>
  void serv<T>::destroy(serv<T>::que& q, conn* p){
-  if(q.cache_count<1024){ p->~conn(); q.cache_ptr[q.cache_count++]=p; }
-     else delete p;
+  if(q.cache_count<1024){ q.hand.clear_conn(p); q.cache_ptr[q.cache_count++]=p; }
+     else q.hand.destroy_conn(p);
     };
 
 template <typename T>

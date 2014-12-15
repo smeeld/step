@@ -80,6 +80,8 @@ typedef std::unordered_map<key_mp, cache_t, hash_mp<key_mp>, cmp<key_mp> > cache
  void handler(conn* s);
  conn* create_conn();
 conn* create_conn(conn*);
+void destroy_conn(conn* p){ delete p; };
+void clear_conn(conn* p){ static_cast<http_conn*>(p)->~http_conn(); };
  cache_mp cache_map;
  };
 
