@@ -166,9 +166,8 @@ template <typename T>
          if(errno==EAGAIN) return 0;
         shutdown(c->fd, SHUT_RDWR); c->state=REQ_SHUT; return 0;
              };
-            if((c->size_recv+=i) < tmp) i=0;
-                      else i=1; 
-            c->hand=REQ_READ;
+            if((c->size_recv+=i) < tmp) i=0; 
+              else{ c->hand=REQ_READ; i=1; };
              break; }while(1);
         
         return i;
