@@ -167,14 +167,15 @@ void http_handler::handler(conn* s){
      uint8_t i=1;
      cache_t ch;
  switch(s->hand){
-   case 0 : s->state=REQ_READ; return;
    case REQ_WRITE : 
           s->msg.msg_iovlen=0; s->buf_size=0; 
-             s->state &=~ REQ_WRITE; s->state |= REQ_SHUT;
+         if(s->type==REQ_SENDFILE) close(s->file_fd);
+       s->keep_count=10; s->state |= REQ_WAIT;
      return;  
    case REQ_READ :
-   if(s->state & REQ_WAIT) s->state &= ~REQ_WAIT; 
+    s->state |= REQ_WRITE; 
     http_conn* cs=static_cast<http_conn*>(s);
+    std::cout<<"READED =="<<s->buf_recv<<"\n";
     if(req_gen(cs)){ error_hand(cs, 1); return; };
    const char *tmp=cs->request.path;
           
@@ -199,7 +200,6 @@ void http_handler::handler(conn* s){
             }catch(int er){  error_hand(cs, er); };
                   
           };
-        s->state |= REQ_WRITE;
 
          };
    };

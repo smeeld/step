@@ -6,6 +6,7 @@
 #define REQ_WRITE 4
 #define REQ_WAIT 8
 #define REQ_SHUT 16
+#define REQ_WORKED 32
 #define REQ_SENDFILE 1
 #define REQ_SENDMSG  2
 class conn_ptr{
@@ -14,12 +15,11 @@ conn_ptr(){};
  virtual ~conn_ptr(){};
  conn_ptr* next;
  conn_ptr* prev;
- int fd;
 };
 class conn: public conn_ptr{
 public:
 conn()
- : keep(1), hand(0), size_rd(0),
+ : keep(1), hand(0), size_rd(0), event(0),
     size_tr(0), size_recv(0), state(0),
    keep_count(1), q_nm(0), buf_size(0),
    current_rsize(1024), buf_recv(default_buf)
@@ -30,11 +30,13 @@ conn()
      msg.msg_control=NULL;
      msg.msg_controllen=0; };
 ~conn(){};
+int fd;
 int index;
 uint8_t state;
 int keep;
 int type;
 uint8_t hand;
+uint8_t event;
 char default_buf[1024];
 char* buf_recv;
 int file_fd; 

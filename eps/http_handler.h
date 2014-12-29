@@ -28,7 +28,7 @@ class http_handler;
  class http_conn : public conn{
 
  public: 
- http_conn(){};
+ http_conn(){ state=REQ_READ; };
  ~http_conn(){};
   request_head request;
   char header[1024];
