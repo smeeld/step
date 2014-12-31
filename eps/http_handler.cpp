@@ -170,12 +170,11 @@ void http_handler::handler(conn* s){
    case REQ_WRITE : 
           s->msg.msg_iovlen=0; s->buf_size=0; 
          if(s->type==REQ_SENDFILE) close(s->file_fd);
-       s->keep_count=10; s->state |= REQ_WAIT;
+       s->state |= REQ_SHUT;
      return;  
    case REQ_READ :
     s->state |= REQ_WRITE; 
     http_conn* cs=static_cast<http_conn*>(s);
-    std::cout<<"READED =="<<s->buf_recv<<"\n";
     if(req_gen(cs)){ error_hand(cs, 1); return; };
    const char *tmp=cs->request.path;
           

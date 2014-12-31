@@ -1,12 +1,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sstream>
-#define REQ_HEAD 1
-#define REQ_READ 2
+#define REQ_READ 1
+#define REQ_WORKED 2
 #define REQ_WRITE 4
 #define REQ_WAIT 8
 #define REQ_SHUT 16
-#define REQ_WORKED 32
 #define REQ_SENDFILE 1
 #define REQ_SENDMSG  2
 class conn_ptr{

@@ -127,6 +127,7 @@ void destroy(conn* p, serv<T>::que& q)
 void delete_conn(conn* p, que& q){
   conn_ptr* ptr=static_cast<conn_ptr*>(p);  
    queue_del(ptr);
+   if((p->event & REQ_WORKED)!=0) --q.worked;
    epoll_ctl(q.efd, EPOLL_CTL_DEL, p->fd, NULL);
    close(p->fd); 
    destroy(p, q);
@@ -220,7 +221,7 @@ void accept_conn(int sck, que& q)
          case RES_CONTINUE : break;
          case RES_HAND : p->state &= ~REQ_READ; p->hand=REQ_READ; q.hand.handler(p); break;
          case RES_WAIT : p->event &= ~REQ_READ;
-              if(((p->event & REQ_READ) && (p->state & REQ_READ))==0) wait_conn(p, q, 10); continue;
+              if(((p->event & REQ_WRITE)==0) || ((p->state & REQ_WRITE)==0)) wait_conn(p, q, 10); continue;
          case RES_SHUT : delete_conn(p, q); break;
          default : break;
        };
@@ -228,18 +229,18 @@ void accept_conn(int sck, que& q)
 
      if((p->event & REQ_WRITE) && (p->state & REQ_WRITE))
       {
-       switch(write(p))
+       switch(write_s(p))
        { 
          case RES_CONTINUE :  continue;
          case RES_HAND :  p->state &= ~REQ_WRITE; p->hand=REQ_WRITE; q.hand.handler(p); break;
          case RES_WAIT :  p->event &= ~REQ_WRITE;
-                if(((p->event & REQ_WRITE) && (p->state & REQ_WRITE))==0) wait_conn(p, q, 10); continue;
+                if(((p->event & REQ_READ)==0) || ((p->state & REQ_READ)==0)) wait_conn(p, q, 10); continue;
          case RES_SHUT : delete_conn(p, q); continue; 
-         default : continue;
+         default : break;
        };
       };
-     if(p->state & REQ_WAIT){ p->event=0; p->state=0; p->state |= REQ_READ;  wait_conn(p, q); continue; };
-     if(p->state & REQ_SHUT){  delete_conn(p, q); continue; };
+     if(p->state & REQ_WAIT){ p->event=0; p->state &=~REQ_WAIT; wait_conn(p, q); continue; };
+     if(p->state & REQ_SHUT){  delete_conn(p, q); continue; }; 
      if(p->event==0) wait_conn(p, q, 10);
      };
     };
@@ -338,6 +339,7 @@ void serv<T>::reactor(serv<T>::que& qs){
     nm=q.worked;
     if(nm>0) s=0;
     cur=epoll_wait( efd, bev, sz, s);
+
     for(i=0; i<cur; i++)
      { 
        pev=bev+i;
@@ -349,18 +351,20 @@ void serv<T>::reactor(serv<T>::que& qs){
 	    { 
          if(s==sck) this->~serv(); 
          delete_conn(p, q);
-         --nm; continue; 
+          continue; 
          };
         
       if(s==sck){ accept_conn(sck, q); continue;};
-      s=p->event;
-        if((pev->events & EPOLLIN) && (p->state & REQ_READ)) p->event |= REQ_READ;
-        if((pev->events & EPOLLOUT) && (p->state & REQ_WRITE)) p->event |= REQ_WRITE;
-        if((p->event & REQ_WORKED)==0) work_conn(p, q);
+        s=((pev->events & EPOLLIN) | (pev->events & EPOLLOUT));
+        if(s!=0)
+         {
+          p->event |= s;
+          if((p->event & REQ_WORKED)==0) work_conn(p, q);
+         };
+       };
+      work_proc(q);
       };
-    work_proc(q);
-     };
-   };
+    };
 
 template <typename T> 
  void* serv<T>::th(void* p){ 
