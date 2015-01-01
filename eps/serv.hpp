@@ -270,7 +270,7 @@ template <typename T>
     if(c->type==REQ_SENDFILE)
       {
         size_t bsz=c->buf_size;
-        if(c->file_fd==0) return 3;
+        if(c->file_fd==0) return RES_SHUT;
         do{errno=0; i=c->size_tr;
            i=sendfile(c->fd, c->file_fd, 0, bsz-i);
           }while(errno==EINTR);
@@ -281,7 +281,7 @@ template <typename T>
              return i;
            };
          c->size_tr+=i;
-         if(c->size_tr==bsz){ c->hand=REQ_WRITE; i=RES_HAND; }
+         if(c->size_tr==bsz) i=RES_HAND;
           else i=RES_WAIT;
         };
        return i;
