@@ -239,9 +239,8 @@ void accept_conn(int sck, que& q)
          default : break;
        };
       };
-     if(p->state & REQ_WAIT){ p->event=0; p->state &=~REQ_WAIT; wait_conn(p, q); continue; };
+     if(p->state & REQ_WAIT){ p->state &=~REQ_WAIT; wait_conn(p, q); continue; };
      if(p->state & REQ_SHUT){  delete_conn(p, q); continue; }; 
-     if(p->event==0) wait_conn(p, q, 10);
      };
     };
   };
