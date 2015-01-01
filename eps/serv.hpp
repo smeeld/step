@@ -304,7 +304,7 @@ template <typename T>
         return i;
        };
      if((c->size_recv+=i) < tmp) i=RES_WAIT; 
-       else{ c->hand=REQ_READ; i=RES_HAND; };
+       else i=RES_HAND;
       return i;
     };
 
@@ -327,6 +327,7 @@ void serv<T>::reactor(serv<T>::que& qs){
    if((efd=epoll_create(1024))>0){ 
   if( epoll_ctl(efd, EPOLL_CTL_ADD, sck, bev)==0) break; };
       q.efd=0;
+
       que** p=qlist+q.number;
         delete *p; *p=NULL;
         pthread_exit(0);
