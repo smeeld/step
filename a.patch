@@ -121,7 +121,7 @@ diff -r '--exclude=configs' linux-3.10.0-123.4.4.el7/net/core/sock.c ../linux-3.
 < 		wake_up_interruptible_sync_poll(&wq->wait, POLLIN | POLLPRI |
 < 						POLLRDNORM | POLLRDBAND);
 ---
->          wake_up_interruptible_sync_poll(&wq->wait, POLLIN |
+>          wake_up_interruptible_sync_poll(&wq->wait, POLLIN  |
 > 						POLLPRI | POLLRDNORM | POLLRDBAND);
 2190a2249,2250
 > 
