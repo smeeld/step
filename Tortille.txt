@@ -87,9 +87,9 @@ function new_long (lev, ind)
    cnt=cnt+1
    pos_art=lev*Settings.stop
     pos_start[cnt-1]=lev
-    if cnt==1 then pos_stop=lev-art else pos_stop=pos_stop+art*Settings.inc_scale end
+    if cnt==1 then pos_stop=lev-pos_art else pos_stop=pos_stop+pos_art*Settings.inc_scale end
     tr_up=L(ind)
-    stop_up=pos.stop
+    stop_up=pos_stop
    end
 
 function new_short (lev, ind)
@@ -97,11 +97,11 @@ function new_short (lev, ind)
    cnt=cnt+1
    pos_art=lev*Settings.stop
     pos_start[cnt-1]=lev
-    if cnt==1 then pos_stop=lev+art else pos_stop=pos_stop-art*Settings.inc_scale end
+    if cnt==1 then pos_stop=lev+art else pos_stop=pos_stop-pos_art*Settings.inc_scale end
     tr_dwn=H(ind)
     stop_dwn=pos_stop
    end
-   end
+   
 
 function check_new (max, min, ind)
   
@@ -140,11 +140,11 @@ function proc_trade (up, lw, upl, lwl, ind)
     st_dwn=H(ind)
     check_new(up, lw, ind)
    else
-      if H(ind) > ( pos_start[cnt-1]+Settings.inc_scale*art) then
+      if H(ind) > ( pos_start[cnt-1]+Settings.inc_scale*pos_art) then
        if T(ind).hour==10 then
         new_long(C(ind), ind)
        else
-        new_long(pos_start[cnt-1]+Settings.inc_scale*art, ind)
+        new_long(pos_start[cnt-1]+Settings.inc_scale*pos_art, ind)
        end
       end
    end
@@ -153,24 +153,24 @@ function proc_trade (up, lw, upl, lwl, ind)
 
 if pos_direction==-1 then
    if H(ind) > upl or H(ind) > pos_stop then
-    pos.direction=0
+    pos_direction=0
     cnt=0
     stop_dwn=nil
     st_up=L(ind)
     check_new(up, lw, ind)
    else
-      if L(ind) < ( pos_start[cnt-1]-Settings.inc_scale*art) then
+      if L(ind) < ( pos_start[cnt-1]-Settings.inc_scale*pos_art) then
        if T(ind).hour==10 then
         new_short(C(ind), ind)
        else
-        new_short(pos_start[cnt-1]+Settings.inc_scale*art, ind)
+        new_short(pos_start[cnt-1]+Settings.inc_scale*pos_art, ind)
       end
      end
     end
   return
  end
 
-if pos.direction==0 then
+if pos_direction==0 then
   check_new(up, lw, ind)
  end
 
