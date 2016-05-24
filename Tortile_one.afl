@@ -1,0 +1,239 @@
+hp=Param("Hi", 30, 1, 700, 1);
+lp=Param("Lo", 20, 1, 700, 1);
+max_increase=Param("Nmax_Increase", 2, 1, 10, 1);
+stop=Param("Stop", 0.005, 0, 100000, 1);
+sc=Param("ART SCALE", 2, 1, 10, 1);
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+art=0;
+cnt=0;
+cur_sum=0;
+procedure new_long(lev, dy, mn, yr)
+  { 
+  
+    pos_direction=1;
+    pos_start=lev;
+     art=stop*lev;
+    pos_stop=lev-stop*lev;
+    
+    printf("Long =%f Stop=%f   Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop,  dy, mn, yr);
+  };
+   
+procedure new_short (lev, dy, mn,yr)
+  {   
+    pos_direction=-1;
+    pos_start=lev;
+     art=stop*lev;
+    pos_stop=lev+stop*lev;
+   
+    printf("Short =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop,  dy, mn, yr);
+   };
+
+procedure check_new (mx, lw, ind, dy, mn, yr)
+  {
+   if(ind<BarCount-1){
+  if (H[ind] > mx)
+   {
+     
+     new_long(mx,  dy, mn, yr);
+   }else{
+  if (L[ind] < lw)
+    {
+   new_short(lw,  dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+
+procedure check_new_c (mx, lw, ind, dy, mn, yr)
+  {
+   if(ind<BarCount-1){
+  if (C[ind] > mx)
+   {
+     
+     new_long(C[ind],  dy, mn, yr);
+   }else{
+  if (C[ind] < lw)
+    {
+   new_short(C[ind],  dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+procedure exit_long(res, str, stp,  dy, mn, yr)
+ {
+ 
+  
+     if(res<0){
+       printf("Loss Long =%f Start=%f Stop=%f  Days=%f  Monh=%f Years=%f \n", res, str, stp,  dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Long =%f Start=%f Stop=%f  Days=%f  Mont=%f Years=%f \n", res, str, stp,  dy, mn,  yr);
+        profit_count=profit_count+1;
+        profit_sum+=res;
+       };
+   };
+   procedure exit_short(res, str, stp,  dy, mn, yr)
+ {
+    
+ 
+     if(res<0){
+       printf("Loss Short =%f Start=%f Stop=%f  Days=%f  Monh=%f Years=%f \n", res, str, stp, dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Short =%f Start=%f Stop=%f  Days=%f  Mont=%f Years=%f \n", res, str, stp,  dy, mn,  yr);
+        profit_count=profit_count+1;
+        profit_sum+=res;
+       };
+   };
+           
+procedure proc_trade (UP, LW, upl, lwl, ind, dy, mn, yr)
+  {
+    
+
+ if (pos_direction==1)
+   {
+   
+     {
+       r=Max(pos_stop, lwl); 
+    if(L[ind] < r){
+     res=r-pos_start-C[ind]/3000;
+       exit_long(res, pos_start, r, dy, mn, yr);
+        pos_direction==0; check_new(UP, LW, ind, dy, mn,yr); };
+    };
+  }else{
+
+  if (pos_direction==-1)
+   { 
+        r=Min(pos_stop, upl); 
+        if(H[ind]>r){
+         res=pos_start-r-C[ind]/3000;
+        exit_short(res, pos_start, r,  dy, mn, yr);
+       pos_direction=0;
+  check_new(UP, LW, ind, dy, mn,yr);};
+   
+  }else{
+ 
+     if (pos_direction==0){ check_new(UP, LW, ind, dy, mn,yr);  }; 
+  };
+ };
+};
+
+/*
+procedure proc_trade_c (UP, LW, upl, lwl, ind, dy, mn, yr)
+  {
+    
+
+ if (pos_direction==1)
+   {
+    res=0;  r=Max(pos_stop, lwl); 
+    if(L[ind] < r){
+     res=r-pos_start-C[ind]/3000;
+       exit_long(res*cnt,  r, dy, mn, yr);
+        check_new_c(UP, LW, ind, dy, mn,yr);
+       }else{
+  if(cnt>0){ 
+   if(cnt<max_increase){
+  if ( C[ind] > (pos_start+art*sc))
+     {   profit_sum+=((C[ind]-pos_start)*cnt);
+         new_long(C[ind],  dy, mn, yr);
+        
+       };  
+     };
+   };
+  }; 
+}else{
+
+  if (pos_direction==-1)
+   { res=0;  r=0; 
+        r=Min(pos_stop, upl); 
+        if(H[ind]>r){
+         res=pos_start-r-C[ind]/3000;
+        exit_short(res*cnt, r, dy, mn, yr);
+        check_new_c(UP, LW, ind, dy, mn,yr);
+       }else{
+   
+  if(cnt>0){
+   if(cnt<max_increase){
+  if (C[ind] < (pos_start-art*sc))
+     {  profit_sum+=((pos_start-C[ind])*cnt);
+        new_short(C[ind],  dy, mn, yr); 
+       
+       };
+     
+     };
+    };
+   };
+  }else{
+ 
+     if (pos_direction==0){ check_new_c(UP, LW, ind, dy, mn,yr);  }; 
+  };
+ };
+};
+*/
+
+procedure proc_trade_c (UP, LW, upl, lwl, ind, dy, mn, yr)
+  {
+    
+
+ if (pos_direction==1)
+   {
+   
+     {
+       r=Max(pos_stop, lwl); 
+    if(L[ind] < r){
+     res=r-pos_start-C[ind]/3000;
+       exit_long(res, pos_start, r, dy, mn, yr);
+        pos_direction==0; check_new_c(UP, LW, ind, dy, mn,yr); };
+    };
+  }else{
+
+  if (pos_direction==-1)
+   { 
+        r=Min(pos_stop, upl); 
+        if(H[ind]>r){
+         res=pos_start-r-C[ind]/3000;
+        exit_short(res, pos_start, r,  dy, mn, yr);
+    pos_direction=0;
+  check_new_c(UP, LW, ind, dy, mn,yr);};
+   
+  }else{
+ 
+     if (pos_direction==0){ check_new_c(UP, LW, ind, dy, mn,yr);  }; 
+  };
+ };
+};
+
+UP=HHV( Ref(H, -1),  hp );
+LW=LLV( Ref(L, -1), hp );
+lup=HHV( Ref(H, -1),  lp );
+llw=LLV( Ref(L, -1), lp );
+Re=Null;
+prev_day=dates[0]%100;
+for(i=0; i<BarCount; i++)
+ { 
+  dy= dates[i]%100;
+   mn=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+      if(prev_day!=dy){ prev_day=dy;
+      proc_trade_c(UP[i], LW[i], lup[i], llw[i], i, dy, mn, yr); 
+      }else{  proc_trade(UP[i], LW[i], lup[i], llw[i], i, dy, mn, yr ); };
+    
+   Re[i]=profit_sum+loss_sum;
+  
+ };
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n", loss_count, profit_count, loss_sum, profit_sum);
+Plot(Re, "Tortille_One", colorGreen, styleLine);
+ 

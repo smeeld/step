@@ -1,0 +1,279 @@
+ten=Param("Tenkan", 40, 1, 1000, 1);
+kij=Param("Kijun", 112, 1, 1000, 1);
+sen=Param("Senkoy", 224, 1, 1000, 1);
+delay = Param( "Delayed Line Periods", 0, 0, 1000, 1 );
+stop=Param("Stop", 0.01, 0, 100000, 1);
+offset=Param("Offset", 0, 0, 1000, 1);
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+hour_cnt=10;
+Res[0]=0;
+start=0;
+fr_mn=0;
+fr_dy=0;
+fr_yr=0;
+profit_days=0;
+loss_days=0;
+prev_sum=0;
+cur_close=0;
+cnt=0;
+num_pos=0;
+art=0;
+procedure new_long(lev, hr, dy, mn, yr)
+  { num_pos=1;
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    art=stop*lev;
+    printf("Long =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+  };
+   
+procedure new_short (lev, hr, dy, mn,yr)
+  { num_pos=1;
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    art=stop*lev;
+    printf("Short =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+   };
+
+
+procedure check_new (mx, lw,  ind, hr, dy, mn, yr)
+  {
+if(ind<(BarCount-1)){
+  if (H[ind] > mx)
+   {
+      
+     new_long(mx, hr, dy, mn, yr); if(pos_stop> L[ind]){ cnt+=1; };
+   }else{
+  if (L[ind] < lw)
+    {
+   new_short(lw, hr, dy, mn, yr); if(pos_stop< H[ind]){ cnt+=1; };
+     
+    };
+   };
+  };
+};
+
+procedure proc_trade (up, lw, fh, fl, ind, dy, mn, yr)
+  {
+
+   
+    res=0; upl=0; stl=0; lst=0;
+     upl=Max(up, H[fh]);
+     stl=Min(lw, L[fl]); 
+ if (pos_direction==1)
+   {
+     lst=Max(lw, L[fl]);
+     
+     if (pos_start < lst OR pos_start==lst)
+          {  cur_close=(lst-pos_start)*num_pos; }; 
+          
+    if (L[ind] < pos_stop OR L[ind]< lst)
+     {
+      pos_direction=0; cur_close=0;
+      if (pos_stop > lst){ res=-1*art*num_pos; }else{ res=(lst-pos_start)*num_pos; };
+      
+     if( res < 0 )
+       {
+          
+       printf("Loss Long =%f Stop=%f Num_pos=%f Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, lst), num_pos, dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit Long =%f Stop=%f NUM_POS=%f Days=%f  Mont=%f Years=%f \n", res, Max( pos_stop, lst), num_pos, dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+      num_pos=0;
+    if ( L[ind] < stl ){ new_short(stl, hour_cnt, dy, mn, yr); if(pos_stop< H[ind]){ cnt+=1; }; };
+  }else{ 
+  if (H[ind] > (pos_start+art) AND num_pos<2)
+      {
+       profit_sum=profit_sum+art; num_pos+=1; pos_stop=pos_start; pos_start+=art;
+        printf("Ok Increase Long Pos New Start=%f  New Stop=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, dy, mn, yr);
+       };
+     };
+}else{
+
+  if (pos_direction==-1)
+   {
+     lst=Min(up, H[fh]); 
+     if (pos_start >= lst)
+          {  cur_close=(pos_start-lst)*num_pos; };
+    if (H[ind] >= pos_stop OR H[ind] >= lst)
+     {
+      pos_direction=0; cur_close=0;
+      if (pos_stop < lst){ res=-1*art*num_pos; }else{ res=(pos_start-lst)*num_pos; };
+   if( res < 0 )
+    {
+       
+       printf("Loss Short =%f Stop=%f Num_POS=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, lst), num_pos, dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit Short =%f Stop=%f Num_POS=%f Days=%f  Mont=%f Years=%f \n", res, Min( pos_stop, lst), num_pos, dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+      num_pos=0;
+    if ( H[ind] > upl){ new_long(upl, hour_cnt, dy, mn, yr);  };
+   }else{ 
+  
+     if (L[ind]<(pos_start-art) AND num_pos<2)
+     { profit_sum=profit_sum+art; num_pos+=1; pos_stop=pos_start; pos_start-=art;
+         printf("Ok Increase Short Pos New Start=%f  New Stop=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, dy, mn, yr); 
+      };
+   };
+  }else{
+      
+      
+     if (pos_direction==0){ check_new(upl, stl, ind, hour_cnt, dy, mn,yr); };
+  };
+ };
+};
+
+procedure close_pos (ind, dy, mn, yr)
+ {
+   
+     res=0;
+     
+       if(pos_direction==1)
+          { res=(C[ind]-pos_start)*num_pos; 
+            }else{
+                   if(pos_direction==-1){ res=(pos_start-C[ind])*num_pos; };
+                  };
+       pos_direction=0; cur_close=0; 
+   if( res < 0 )
+    {
+
+       printf("Loss In Close =%f Close=%f NUM_POS=%f Days=%f  Monh=%f Years=%f \n", res, C[ind], num_pos,  dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit In Close =%f Close=%f NUM_POS=%f Days=%f  Mont=%f Years=%f \n", res, C[ind], num_pos,  dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=(res-(C[ind]/3000));
+       }; 
+       nw=loss_sum+profit_sum; num_pos=0;
+       if(nw >= prev_sum)
+         { profit_days+=1; printf("Day =%f Month=%f Year=%f Is Profit=%f \n", dy, mn, yr, nw-prev_sum); }
+           else{ loss_days+=1; printf("Day =%f Month=%f Year=%f Is Loss=%f \n", dy, mn, yr, nw-prev_sum);  };
+            prev_sum=nw;
+            oldfl=0;
+            oldfh=0;
+    };
+
+TL = ( HHV( Ref(H, -1*delay), kij ) + LLV( Ref(L, -1*delay), kij ) ) / 2;
+SL = ( HHV( Ref(H, -1*delay), ten  ) + LLV( Ref(L, -1*delay), ten ) ) / 2;
+Sp1 = ( SL + TL ) / 2;
+Sp2 = ( HHV( Ref(H, -1*delay), sen ) + LLV( Ref(L, -1*delay), sen ) ) / 2;
+
+Hn1= Ref(H, -1); 
+Hn2= Ref(H, -2); 
+Hn3= Ref(H, -3); 
+Hn4= Ref(H, -4); 
+Hn5= Ref(H, -5); 
+Hn6= Ref(H, -6); 
+Hn7= Ref(H, -7); 
+Hn8= Ref(H, -8); 
+Hn9= Ref(H, -9); 
+Hn10= Ref(H, -10); 
+Hn11= Ref(H, -11); 
+Hn12= Ref(H, -12); 
+Hn13= Ref(H, -13); 
+Hn14= Ref(H, -14); 
+Hn15= Ref(H, -15); 
+Hn16= Ref(H, -16); 
+Hn17= Ref(H, -17); 
+Hn18= Ref(H, -18); 
+Hn19= Ref(H, -19); 
+Hn20= Ref(H, -20); 
+Hn21= Ref(H, -21);
+ 
+Hn9= Ref(H, -9); 
+Hn10= Ref(H, -10); 
+Ln1= Ref(L, -1); 
+Ln2= Ref(L, -2); 
+Ln3= Ref(L, -3); 
+ln4= Ref(L, -4); 
+Ln5= Ref(L, -5); 
+Ln6= Ref(L, -6); 
+Ln7= Ref(L, -7); 
+ln8= Ref(L, -8); 
+Ln9= Ref(L, -9); 
+Ln10= Ref(L, -10); 
+Ln11= Ref(L, -11); 
+ln12= Ref(L, -12); 
+Ln13= Ref(L, -13);
+ln14= Ref(L, -14); 
+Ln15= Ref(L, -15); 
+Ln16= Ref(L, -16); 
+Ln17= Ref(L, -17); 
+ln18= Ref(L, -18); 
+Ln19= Ref(L, -19);  
+ln20= Ref(L, -20); 
+Ln21= Ref(L, -21); 
+
+PH = Hn11 > Hn1 AND Hn11 > Hn2 AND Hn11 > Hn3 AND Hn11 > Hn4 AND Hn11 >Hn5 AND Hn11> Hn6  AND Hn11> Hn7 AND
+     Hn11 > Hn8 AND Hn11 > Hn9 AND Hn11 > Hn10 AND Hn11 > Hn12 AND Hn11 >Hn13 AND Hn11> Hn14 AND Hn11 > Hn15 AND Hn11 >Hn16 AND Hn11> Hn17
+     AND  Hn11 > Hn18 AND Hn11 >Hn19 AND Hn11> Hn20 AND Hn11 > Hn21;
+PL =  Ln11 < Ln1 AND Ln11 < Ln2 AND Ln11 < Ln3 AND Ln11 < Ln4 AND Ln11 < Ln5 AND Ln11> Ln6  AND
+     Ln11 < Ln7 AND Ln11< Ln8 AND  Ln11 < Ln9 AND Ln11 < Ln10 AND Ln11 < Ln12 AND Ln11 < Ln13 AND Ln11 < Ln14 AND
+     Ln11 < Ln15 AND Ln11 < Ln16 AND Ln11 < Ln17 AND Ln11 < Ln18 AND Ln11 < Ln19 AND Ln11 < Ln20 AND Ln11< Ln21; 
+  
+ 
+PH=Ref(PH,11);
+PL=Ref(PL,11); 
+
+
+PH[BarCount-1]= Null;
+PL[BarCount-1]= Null;
+
+PH[BarCount-2]= Null;
+PL[BarCount-2]= Null;
+
+
+AR=MA(Close, 9);
+oldfl=0;
+oldfh=0;
+p=0;
+prev_day=dates[0]%100;
+
+for(i=0; i<BarCount; i++)
+ { mx=0; mn=0;
+    dy= dates[i]%100;
+   mth=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+    
+   if (Sp1[i] > Sp2[i]){ mx=Sp1[i]; mn=Sp2[i]; }else{ mx=Sp2[i]; mn=Sp1[i]; };
+    if(prev_day!= dy)
+      { 
+       
+        
+        if(p==0){ p=1; close_pos (i, prev_day, mth, yr); AR[i]=profit_sum+loss_sum; continue; };
+         /*if(H[i]>H[oldfh]){ oldfh=i; };
+          if(L[i]<L[oldfl]){ oldfl=i; };*/
+          prev_day=dy; p=0;
+           oldfh=i; 
+           oldfl=i; 
+         AR[i]=profit_sum+loss_sum;
+         continue;
+       };
+       
+   proc_trade(mx, mn, oldfh, oldfl, i, dy, mth, yr);
+   AR[i]=profit_sum+loss_sum+cur_close;
+   if(PH[i]==1 ){ oldfh=i; };
+   if(PL[i]==1 ){ oldfl=i; };
+  
+ };
+
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n Loss Days=%f Profit Days=%f \n CNT=%f \n",
+                            loss_count, profit_count, loss_sum, profit_sum, loss_days, profit_days, cnt);
+Plot(AR, "Bot_Fractals_REV_ANTIGAP_increase_15", colorGreen, styleLine );

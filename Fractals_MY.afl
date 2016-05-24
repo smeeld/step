@@ -1,0 +1,15 @@
+M=Param("MA", 10, 0, 100000, 1);
+PH=H;
+PL=L;
+
+for(i=2; i< BarCount-2; i++){
+ if(H[i] > H[i-2] AND H[i] > H[i-1] AND H[i]>H[i+1]  AND H[i]> H[i+2] ){ PH[i]=1; }else{ PH[i]=0; };
+ if(L[i] < L[i-2] AND L[i] < L[i-1] AND L[i]<L[i+1]  AND L[i]< L[i+2] ){ PL[i]=1; }else{ PL[i]=0; };
+};
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+Plot( EMA(C, M), "MA_Orig", colorGreen, styleLine );
+PlotShapes( shapeSmallDownTriangle * PL, colorGreen, 0, L, 10);
+PlotShapes(  shapeSmallUpTriangle * PH, colorRed, 0, H, 10);
+
+
+

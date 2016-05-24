@@ -1,0 +1,274 @@
+Periods = Param("Periods", 20, 5, 300, 1 );
+scale=Param("scale", 4, 1, 10, 1);
+stop=Param("Stop", 0.005, 0, 100000, 1);
+zone=Param("Increase Zone", 4, 0, 100, 1);
+pos_start_b=0;
+pos_direction_b=0;
+pos_stop_b=0;
+pos_start_c=0;
+pos_direction_c=0;
+pos_stop_c=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+cur_close=0;
+art=0;
+
+
+procedure new_long_b (lev)
+  {
+    
+    pos_direction_b=1;
+    pos_start_b=lev;
+    pos_stop_b=lev-stop*lev;
+    
+  };
+   
+procedure new_short_b (lev)
+  {
+    pos_direction_b=-1;
+    pos_start_b=lev;
+    pos_stop_b=lev+stop*lev;
+   
+   };
+   
+   procedure new_long_c(lev)
+  {
+    
+    pos_direction_c=1;
+    pos_start_c=lev;
+    pos_stop_c=lev-stop*lev;
+    art=lev*stop;
+    
+  };
+   
+procedure new_short_c (lev)
+  {
+    pos_direction_c=-1;
+    pos_start_c=lev;
+    pos_stop_c=lev+stop*lev;
+    art=lev*stop;
+    
+   };
+   
+ procedure check_new_b (mx, lw, ind)
+  {
+if(ind<(BarCount-1)){
+  if (C[ind] > mx)
+   {
+  
+     new_long_b(C[ind]);
+   }else{
+  if (C[ind] < lw)
+    {
+   new_short_b(C[ind]);
+     
+    };
+   };
+  };
+};
+
+procedure check_new_c (mx, lw, ind)
+  {
+if(ind<(BarCount-1)){
+  if (C[ind] > mx)
+   {
+  
+     new_long_c(C[ind]);
+   }else{
+  if (C[ind] < lw)
+    {
+   new_short_c(C[ind]);
+     
+    };
+   };
+  };
+};  
+
+procedure proc_trade_b (up, lw, cv, ind)
+  {
+
+   res=0;
+ 
+ if (pos_direction_b==1)
+   {
+     if (pos_start_b <= cv )
+          {  cur_close_b=(cv-pos_start_b); };
+    if (L[ind] < pos_stop_b OR C[ind]< cv)
+     {
+      pos_direction_b=0; cur_close_b=0;
+    if(L[ind]<pos_stop_b ){
+       res=pos_stop_b-pos_start_b-C[ind]/3000; }else{
+       if(C[ind]<cv ){ res=C[ind]-pos_start_b; };
+       };
+    
+     if( res < 0 )
+       {
+
+       
+        loss_count=loss_count+1;
+        loss_sum=loss_sum+res;
+      }else{
+       
+        profit_count=profit_count+1;
+        profit_sum=profit_sum+res;
+       };
+
+     check_new_b(up, lw, ind);
+  }; 
+}else{
+
+  if (pos_direction_b==-1)
+   {
+      if (pos_start_b >=cv)
+          {  cur_close_b=(pos_start_b-cv); };
+          
+    if (H[ind] > pos_stop_b OR C[ind] > cv )
+     {
+             pos_direction_b=0; cur_close_b=0;
+       if(H[ind]>pos_stop_b){
+       res=pos_start_b-pos_stop_b-C[ind]/3000; }else{
+       if(C[ind]>cv ){ res=pos_start_b-C[ind]; };
+       };
+    
+   if( res < 0 )
+    {
+
+       
+        loss_count=loss_count+1;
+        loss_sum=loss_sum+res;
+      }else{
+      
+        profit_count=profit_count+1;
+        profit_sum=profit_sum+res;
+       };
+
+     check_new_b(up, lw, ind);
+   };
+  }else{
+     if (pos_direction_b==0){ check_new_b(up, lw, ind); };
+  };
+ };
+};
+
+
+procedure proc_trade_c (up, lw, ind)
+  {
+ 
+ if (pos_direction_c==1)
+   {  stp=Max(pos_stop_c, lw);
+      if (pos_start_c <= stp )
+          {  cur_close_c=(stp-pos_start_c); };
+    if (L[ind] < stp)
+     {
+      pos_direction_c=0; cur_close_c=0;
+      res=stp-pos_start_c;
+     
+     
+      if( res < 0 )
+       {
+
+      
+        loss_count=loss_count+1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       
+        profit_count=profit_count+1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+     
+   check_new_c(up, lw,  ind);
+  }else{ 
+  
+     st=H[ind]-pos_stop_c; 
+      if(st > art*scale){
+     
+       pos_stop_c+=(st-art*scale); }; };
+}else{
+
+  if (pos_direction_c==-1)
+   {
+      stp=Min(pos_stop_c, up);
+      if (pos_start_c >= stp )
+          {  cur_close_c=(pos_start_c-stp); };
+          
+    if (H[ind] > stp)
+     {
+      pos_direction_c=0; cur_close_c=0;
+       res=pos_start_c-stp;
+   if( res < 0 )
+    {
+
+       
+        loss_count=loss_count+1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       
+        profit_count=profit_count+1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+        
+   check_new_c(up, lw,  ind);
+   }else{
+      
+      st=pos_stop_c-L[ind];
+       if(st > art*scale){
+     
+       pos_stop_c-=(st-art*scale); };  };
+      }else{
+     if (pos_direction_c==0){ check_new_c(up, lw,  ind); };
+  };
+ };
+};
+
+procedure close_pos (ind, dy, mn, yr)
+ {
+   
+     res=0;
+       if(pos_direction_b==1)
+          { res=C[ind]-pos_start_b; 
+            }else{
+                   if(pos_direction_b==-1){ res=pos_start_b-C[ind]; };
+                  };
+       pos_direction_b=0; cur_close_b=0; 
+   if( res < 0 )
+    {
+
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+        profit_count+=1;
+        profit_sum+=res;
+       };
+    };
+
+Re=Null;
+MB=MA(C, Periods);
+B1=HHV( Ref(H, -1),  Periods );
+B2=LLV( Ref(L, -1),  Periods);
+dates=DateNum();
+prev_day=dates[0]%100;
+for(i=0; i<BarCount; i++)
+ { 
+    dy= dates[i]%100;
+   mn=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+    if(prev_day!= dy)
+      { 
+        
+        close_pos (i, prev_day, mn, yr);
+          
+          prev_day=dy;
+          Re[i]=profit_sum+loss_sum+cur_close; continue;
+         
+       };
+   proc_trade_c(B1[i], B2[i], i);
+   proc_trade_b(B1[i], B2[i], MB[i], i);
+   Re[i]=profit_sum+loss_sum+cur_close;
+  
+ };
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n ",
+                            loss_count, profit_count, loss_sum, profit_sum);
+Plot(Re, "BOll_INT_Doncian", colorGreen, styleLine);
+ 

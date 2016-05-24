@@ -1,0 +1,46 @@
+prds = Param( "Standard Line Periods",28, 5, 1000, 1 );
+turn = Param( "Turning Line Periods", 10, 3, 1000, 1 );
+delay = Param( "Delayed Line Periods", 0, 0, 1000, 1 );
+span = Param( "Spans Periods", 56, 10, 1000, 1 );
+
+TL = ( HHV( Ref(H, -1*delay), turn ) + LLV( Ref(L, -1*delay), turn ) ) / 2;
+SL = ( HHV( Ref(H, -1*delay), prds ) + LLV( Ref(L, -1*delay), prds ) ) / 2;
+
+Sp1 = ( SL + TL ) / 2;
+Sp2 = ( HHV( Ref(H, -1*delay), span ) + LLV( Ref(L, -1*delay), span ) ) / 2;
+
+_N( Title = StrFormat( "{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Close %g (%.1f%%) Vol " + WriteVal( V, 1.0 ) + " {{VALUES}}", O, H, L, C, SelectedValue( ROC( C, 1 ) ) ) );
+
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+Plot( SL, "SL", colorRed, styleThick | styleNoLabel );
+Plot( TL, "TL", colorGreen, styleThick | styleNoLabel );
+color = IIf( Sp1 > Sp2, ParamColor( "Span1 Color", ColorRGB( 0, 255, 0 ) ), ParamColor( "Span2 Color", ColorRGB( 255, 104, 32 ) ) );
+PlotOHLC ( Sp1, Sp1, Sp2, Sp2, "Cloud", Color, styleCloud | styleNoLabel, Null, Null, 0, -2 );
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+Hn1= Ref(H, -1); 
+Hn2= Ref(H, -2); 
+Hn3= Ref(H, -3); 
+Hn4= Ref(H, -4); 
+
+Ln1= Ref(L, -1); 
+Ln2= Ref(L, -2); 
+Ln3= Ref(L, -3); 
+ln4= Ref(L, -4); 
+
+PH = Hn2 >= Hn1 AND Hn2 >= Hn3 AND Hn2>H AND Hn2>Hn4 /*AND Ln2>Ln3 AND Ln2> Ln1 */AND Hn2>Ln2;
+PL = Ln2 <= Ln1 AND Ln2 <= Ln3 AND Ln2<L AND Ln2<Ln4 /*AND Hn2<Hn3 AND Hn2<Hn1 */AND Hn2>Ln2;
+
+ 
+PH=Ref(PH,2);
+PL=Ref(PL,2); 
+
+PH[BarCount-1]= Null;
+PL[BarCount-1]= Null;
+
+PH[BarCount-2]= Null;
+PL[BarCount-2]= Null;
+
+
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+PlotShapes( shapeSmallDownTriangle * PL, colorGreen, 0, L, 10);
+PlotShapes(  shapeSmallUpTriangle * PH, colorRed, 0, H, 10);

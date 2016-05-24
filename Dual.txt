@@ -1,0 +1,38 @@
+
+Settings={
+Name="Stops",
+stop=0.005,
+
+line={
+{
+Name="Line1",
+Color=RGB(0, 255, 0),
+Type=TYPE_LINE,
+Width=1
+  }
+ }
+}
+
+prev=0
+
+
+function Init()
+
+return 1
+end
+
+function OnCalculate(ind)
+ 
+
+if prev>ind then prev=0  end
+if ind > prev then
+ prev=ind
+  if C(ind-1)>O(ind-1) then
+    res=C(ind-1)-C(ind-1)*Settings.stop
+  else
+   res=C(ind-1)+C(ind-1)*Settings.stop
+  end
+ end
+
+  return res
+end

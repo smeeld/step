@@ -1,0 +1,26 @@
+hi=Param("UP", 20, 1, 1000, 1);
+hil=Param("UP2", 10, 1, 1000, 1);
+scale=Param("Scale", 0.5, 0.1, 1000,0.1);
+
+hhb=HHV(Ref(H, -1), hi);
+hhc=HHV(Ref(C, -1), hi);
+llb=LLV(Ref(L, -1), hi);
+llc=LLV(Ref(C, -1), hi);
+
+hhbl=HHV(Ref(H, -1), hil);
+hhcl=HHV(Ref(C, -1), hil);
+llbl=LLV(Ref(L, -1), hil);
+llcl=LLV(Ref(C, -1), hil);
+tmp=(hhb-llc);
+tmp2=(hhc-llb);
+mas=IIf(tmp>=tmp2, tmp, tmp2);
+tmpl=(hhbl-llcl);
+tmp2l=(hhcl-llbl);
+masl=IIf(tmpl>=tmp2l, tmpl, tmp2l);
+ar1=C+scale*mas;
+
+ar2=C-scale*masl;
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+Plot(ar1, "AR1", colorGreen, styleLine );
+Plot(ar2, "AR2", colorGreen, styleLine );
+

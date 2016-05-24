@@ -1,0 +1,187 @@
+Settings={
+Name="Donchian",
+period=1000,
+stop=3,
+offset=1,
+ line=
+{
+ {
+    Name="line1",
+   Type=TYPE_LINE,
+   Color=RGB(0,255,0)
+  }
+ }
+}
+
+pos={ start=0, direction=0,stop=0 }
+statistic={ loss_count=0, profit_count=0, loss_sum=0, profit_sum=0 }
+cur_sum=0
+
+cnt=0
+prev=0
+sen={}
+res=nil
+cur_sum=0
+function new_long (lev, ind)
+    pos.direction=1
+    pos.start=lev
+    pos.stop=lev-Settings.stop
+    message("Long =" .. lev .."  Stop=" .. tostring(pos.stop) .. " Hour=" .. tostring(T(ind).hour)
+            .. " Day=" .. tostring(T(ind).day) .. " Min " .. tostring(T(ind).min) .. "\n Month=" .. tostring( T(ind).month), 2)
+      
+   end
+
+function new_short (lev, ind)
+    pos.direction=-1
+    pos.start=lev
+    pos.stop=lev+Settings.stop
+    message("Short =" .. lev .."  Stop=" .. tostring(pos.stop) .. " Hour=" .. tostring(T(ind).hour)
+            .. " Day=" .. tostring(T(ind).day) .. " Min " .. tostring(T(ind).min) .. "\n Month=" .. tostring( T(ind).month), 2)
+      
+   end
+
+function check_new (max, min, ind)
+  
+  
+  if H(ind) > max then
+     new_long(max, ind)
+     return
+   end
+ 
+  if L(ind) < min then
+    new_short(min, ind)
+    return
+   end
+ end
+
+
+function proc_trade (max, min, ind)
+  
+ 
+ if pos.direction==1 then
+   mx=0
+   if min > pos.stop then
+  mx=min
+  else
+  mx=pos.stop
+ end
+
+  if min > pos.start or min==pos.start then cur_sum=min-pos.start end
+
+   if L(ind) < mx then
+    pos.direction=0
+    cur_sum=0
+      res=mx-pos.start
+     
+     if res < 0 then
+
+        message("Los Long=" .. tostring(res) .. " Strt=" .. pos.start  .."  Stp=" .. tostring(mx) ..
+         " Hour=" .. tostring(T(ind).hour)
+            .. " Day=" .. tostring(T(ind).day) .. " Min " .. tostring(T(ind).min) .. "\n Month=" .. tostring( T(ind).month), 2)
+        statistic.loss_count=statistic.loss_count+1
+        statistic.loss_sum=statistic.loss_sum+res
+      else
+       message("Prof Long=" .. tostring(res) .. " Strt=" .. pos.start  ..
+       "  Stp=" .. tostring(mx) .. " Hour=" .. tostring(T(ind).hour)
+            .. " Day=" .. tostring(T(ind).day) .. " Min " .. tostring(T(ind).min) .. "\n Month=" .. tostring( T(ind).month), 2)
+        statistic.profit_count=statistic.profit_count+1
+        statistic.profit_sum=statistic.profit_sum+res
+     end
+   if L(ind) < min then
+     new_short(min, ind)
+    end
+  end
+return
+end
+
+ if pos.direction==-1 then
+   mn=0
+   if max < pos.stop then
+    mn=max
+  else
+   mn=pos.stop
+ end
+
+  if max < pos.start or max==pos.start then cur_sum=pos.start-max end
+
+   if H(ind) > mn then
+    pos.direction=0
+     cur_sum=0
+     res=pos.start-mn
+    
+      if res < 0 then
+
+   
+       message("Loss Short="  .. tostring(res) .. " Start =" .. pos.start  ..
+           "  Stop=" .. tostring(mn) .. " Hour=" .. tostring(T(ind).hour)
+            .. " Day=" .. tostring(T(ind).day) .. " Min " .. tostring(T(ind).min) .. "\n Month=" .. tostring( T(ind).month), 2)
+  
+        statistic.loss_count=statistic.loss_count+1
+        statistic.loss_sum=statistic.loss_sum+res
+      else
+        message("Prof Short=" .. tostring(res) .. " Strt=" .. pos.start  ..
+         "  Stp=" .. tostring(mn) .. " Hour=" .. tostring(T(ind).hour)
+            .. " Day=" .. tostring(T(ind).day) .. " Min " .. tostring(T(ind).min).. "\n Month=" .. tostring( T(ind).month), 2)
+        statistic.profit_count=statistic.profit_count+1
+        statistic.profit_sum=statistic.profit_sum+res
+      end
+    if H(ind) > max then
+      new_long(max, ind)
+    end
+   end
+return
+  end
+
+ if pos.direction==0 then check_new(max, min,  ind) end
+  
+
+end
+
+function Init() 
+
+  for i=0, 2*Settings.period-1, 1 do
+   sen[i]=0
+  end
+
+
+ 
+  return 1 end
+
+function OnCalculate(ind)
+ 
+if start==0 then
+ start=1
+ for i=0, 2*Settings.period-1, 1 do
+   sen[i]=0
+  end
+ end
+
+if ind < prev then prev=0 start=0 end
+
+if prev<ind then
+    prev=ind
+    
+    max=0
+    min=1000000
+    sen[cnt]=H(ind-1)
+    sen[Settings.period+cnt]=L(ind-1)
+    cnt=cnt+1
+     if cnt==Settings.period then cnt=0 end
+
+  for i=0, Settings.period-1, 1 do
+   if sen[i] > max then max=sen[i] end
+    if sen[i+Settings.period]< min then min=sen[i+Settings.period] end
+  end
+
+proc_trade(max, min, ind)
+
+
+if T(ind).day==11 and T(ind).hour==15 and T(ind).month==4 then
+
+   message("Loss Amount=" .. tostring(statistic.loss_count) .. "  Profit Amount=" ..
+             tostring(statistic.profit_count) .. " Loss Sum=" .. tostring(statistic.loss_sum) ..
+              " Profit Sum=" .. tostring(statistic.profit_sum), 2)
+   end
+end
+ return statistic.loss_sum+statistic.profit_sum+cur_sum
+ end

@@ -1,0 +1,172 @@
+
+stop=Param("Stop", 0.005, 0, 100000, 1);
+donchian_period=Param("Donchian", 10, 1, 1000,1);
+offset=Param("Offset", 0, 0, 1000, 1);
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+hour_cnt=10;
+Res[0]=0;
+start=0;
+
+cur_close=0;
+profit_days=0;
+loss_days=0;
+prev_sum=0;
+procedure new_long(lev, hr, dy, mn, yr)
+  { 
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    printf("Long =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+  };
+   
+procedure new_short (lev, hr, dy, mn,yr)
+  { 
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    printf("Short =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+   };
+
+procedure check_new (mx, lw, ind, hr, dy, mn, yr)
+  {
+  
+if(ind<(BarCount-1)){
+  if (C[ind] > mx )
+   { 
+   
+     new_long(C[ind], hr, dy, mn, yr);
+   }else{
+  if (C[ind] <lw)
+    {
+      
+   new_short(C[ind], hr, dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+procedure close_pos (ind, dy, mn, yr)
+ {
+   
+     res=0;
+       if(pos_direction==1)
+          { res=C[ind]-pos_start; 
+            }else{
+                   if(pos_direction==-1){ res=pos_start-C[ind]; };
+                  };
+       pos_direction=0; cur_close=0; 
+   if( res < 0 )
+    {
+
+       printf("Loss In Close =%f Close=%f Days=%f  Monh=%f Years=%f \n", res, C[ind],  dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit In Close =%f Close=%f Days=%f  Mont=%f Years=%f \n", res, C[ind],  dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+       
+       nw=loss_sum+profit_sum; 
+       if(nw >= prev_sum)
+         { profit_days+=1; printf("Day =%f Month=%f Year=%f Is Profit=%f \n", dy, mn, yr, nw-prev_sum); }
+           else{ loss_days+=1; printf("Day =%f Month=%f Year=%f Is Loss=%f \n", dy, mn, yr, nw-prev_sum);  };
+            prev_sum=nw;
+    };
+    
+procedure proc_trade (up, lw, ind, dy, mn, yr)
+  {
+
+    res=0;
+ if (pos_direction==1)
+   {
+     if (pos_start <= lw )
+          {  cur_close=(lw-pos_start); };
+          mx=Max(pos_stop, lw);
+     if (L[ind] < mx )
+      {
+      pos_direction=0; cur_close=0; 
+       res=mx-pos_start-C[ind]/3000;
+        
+     if( res < 0 )
+       {
+
+       printf("Loss Long =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, lw), hour_cnt, dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Long =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", res, Max( pos_stop, lw), hour_cnt, dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+  
+   check_new( up, lw, ind, hour_cnt, dy, mn,yr);
+  };
+}else{
+
+  if (pos_direction==-1)
+   {
+      
+     if (pos_start >= up)
+          {  cur_close=(pos_start-up); };
+          mn=Min(pos_stop, up);
+    if (H[ind] > mn)
+     {
+      pos_direction=0; cur_close=0;
+        res=pos_start-mn-C[ind]/3000;
+        
+   if( res < 0 )
+    {
+
+       printf("Loss Short =%f Stop=%f Hours=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, up), hour_cnt, dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Short =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", res, Min( pos_stop, up), hour_cnt, dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+    
+   check_new( up, lw, ind, hour_cnt, dy, mn,yr);
+   };
+  }else{
+     if (pos_direction==0){ check_new( up, lw, ind, hour_cnt, dy, mn,yr); };
+   };
+ };
+};
+
+AR=MA(Close, 9);
+DH=HHV( Ref(H, -1),  donchian_period );
+DL=LLV( Ref(L,-1), donchian_period );
+p=0;
+prev_day=dates[0]%100;
+for(i=0; i<BarCount; i++)
+ { mx=0; mn=0;
+    dy= dates[i]%100;
+   mn=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+    if(prev_day!= dy)
+      { 
+        
+        close_pos (i-1, prev_day, mn, yr);
+          
+          prev_day=dy;
+         
+         
+       };
+       
+   proc_trade(DH[i], DL[i], i, dy, mn, yr);
+   AR[i]=profit_sum+loss_sum+cur_close;
+  
+ };
+ printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n Loss Days=%f Profit Days=%f\n",
+                            loss_count, profit_count, loss_sum, profit_sum, loss_days, profit_days);
+Plot(AR, "Donchian_INT", colorGreen, styleLine );

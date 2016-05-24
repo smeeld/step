@@ -1,0 +1,269 @@
+lp=Param("Lo", 20, 1, 700, 1);
+max_increase=Param("Nmax_Increase", 4, 1, 10, 1);
+stop=Param("Stop", 2, 0.5, 4, 0.5);
+tray=Param("Trailing Scale", 1, 1, 10, 1);
+sc=Param("Increase SCALE",1, 0.5, 10, 0.5);
+dates=datenum();
+pos_start=null;
+pos_direction=0;
+pos_stop=null;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+cnt=0;
+cur_sum=0;
+procedure new_long(lev, i, at, dy,  mn, yr)
+  { cnt+=1; 
+  
+    pos_direction=1;
+    pos_start[cnt-1]=lev;
+    
+   pos_stop[cnt-1]=lev-stop*at;
+      
+    printf("Long =%f Stop=%f  Pos=%f Days=%f  Mont=%f Years=%f \n", pos_start[cnt-1], pos_stop[cnt-1], cnt, dy, mn, yr);
+  };
+   
+procedure new_short (lev, i, at,dy, mn,yr)
+  { cnt+=1;
+  
+    pos_direction=-1;
+    pos_start[cnt-1]=lev;
+   
+      pos_stop[cnt-1]=lev+stop*at;
+        
+    printf("Short =%f Stop=%f Pos=%f Days=%f  Mont=%f Years=%f \n", pos_start[cnt-1], pos_stop[cnt-1], cnt,  dy, mn, yr);
+   };
+
+procedure check_new (mx, lw, ind, at, dy, mn, yr)
+  {
+   if(ind<BarCount-1){
+  if (H[ind] > mx)
+   {
+     
+     new_long(mx, ind, at, dy, mn, yr);
+   }else{
+  if (L[ind] < lw)
+    {
+   new_short(lw, ind, at,  dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+
+procedure check_new_c (mx, lw, ind, at, dy, mn, yr)
+  {
+   if(ind<BarCount-1){
+  if (C[ind] > mx)
+   {
+     
+     new_long(C[ind], ind, at,  dy, mn, yr);
+   }else{
+  if (C[ind] < lw)
+    {
+   new_short(C[ind], ind,at,  dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+procedure exit_long(res, str, stp, i, dy, mn, yr)
+ {
+ 
+   
+     if(res<0){
+       printf("Loss Long =%f Start=%f Stop=%f Num Pos=%f Days=%f  Monh=%f Years=%f \n", res, str, stp, i, dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Long =%f Start=%f Stop=%f Num_pos=%f Days=%f  Mont=%f Years=%f \n", res, str, stp, i, dy, mn,  yr);
+        profit_count=profit_count+1;
+        profit_sum+=res;
+       };
+   };
+   procedure exit_short(res, str, stp, i, dy, mn, yr)
+ {
+    
+    
+     if(res<0){
+       printf("Loss Short =%f Start=%f Stop=%f Num_pos=%f Days=%f  Monh=%f Years=%f \n", res, str, stp, i, dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Short =%f Start=%f Stop=%f Num_pos=%f Days=%f  Mont=%f Years=%f \n", res, str, stp, i, dy, mn,  yr);
+        profit_count=profit_count+1;
+        profit_sum+=res;
+       };
+   };
+         
+procedure proc_trade (upl, lwl, ind, at,  dy, mn, yr)
+  {
+    
+
+ if (pos_direction==1)
+   {
+   nm=cnt;
+  
+    for(i=0; i<nm; i++){
+     r=Max(pos_stop[i], lwl); 
+      if(L[ind] < r){
+     res=r-pos_start[i]-C[ind]/3000;
+       exit_long(res, pos_start[i], r, i, dy, mn, yr);
+       cnt-=1;
+       };
+      };
+      if(cnt==0){
+     pos_direction=0;
+   check_new(upl, lwl, ind, at, dy, mn,yr);
+  }else{
+ 
+   if(cnt<max_increase){
+  if ( H[ind] > (pos_start[cnt-1]+at*sc))
+     {  
+         new_long(pos_start[cnt-1]+at*sc, ind, at, dy, mn, yr);
+        
+       };  
+     };
+     // s=H[ind]-pos_stop;
+     //  if(s>tray*at[ind]){ pos_stop+=(s-tray*at[ind]); };
+       };         
+  
+  
+}else{
+
+  if (pos_direction==-1)
+   { 
+   nm=cnt; 
+    
+     for(i=0; i<nm; i++)
+     { 
+      r=Min(pos_stop[i], upl); 
+     if(H[ind] > r){
+     res=pos_start[i]-r-C[ind]/3000;
+       exit_short(res, pos_start[i], r, i, dy, mn, yr);
+       cnt-=1;
+       };
+     };
+     if(cnt==0)
+     {  
+       pos_direction==0; check_new(upl, lwl, ind, at, dy, mn,yr);
+      }else{
+  
+   if(cnt<max_increase){
+  if (L[ind] < (pos_start[cnt-1]-at*sc))
+     {  
+        new_short(pos_start[cnt-1]-at*sc, ind, at,  dy, mn, yr); 
+       
+       };
+     
+     };
+    //  s=pos_stop-L[ind];
+    //   if(s>tray*at[ind]){ pos_stop-=(s-tray*at[ind]); };
+      
+    };
+   
+  }else{
+ 
+     if (pos_direction==0){ check_new(upl, lwl, ind, at, dy, mn,yr);  }; 
+  };
+ };
+};
+
+
+procedure proc_trade_c (upl, lwl, ind, at,  dy, mn, yr)
+  {
+    
+
+ if (pos_direction==1)
+   {
+   nm=cnt;
+  
+    for(i=0; i<nm; i++){
+     r=Max(pos_stop[i], lwl); 
+      if(L[ind] < r){
+     res=r-pos_start[i]-C[ind]/3000;
+       exit_long(res, pos_start[i], r, i, dy, mn, yr);
+       cnt-=1;
+       };
+      };
+      if(cnt==0){
+     pos_direction=0;
+   check_new_c(upl, lwl, ind, at, dy, mn,yr);
+  }else{
+ 
+   if(cnt<max_increase){
+  if ( C[ind] > (pos_start[cnt-1]+at*sc))
+     {  
+         new_long(C[ind], ind, at, dy, mn, yr);
+        
+       };  
+     };
+     // s=H[ind]-pos_stop;
+     //  if(s>tray*at[ind]){ pos_stop+=(s-tray*at[ind]); };
+       };         
+  
+  
+}else{
+
+  if (pos_direction==-1)
+   { 
+   nm=cnt; 
+    
+     for(i=0; i<nm; i++)
+     { 
+      r=Min(pos_stop[i], upl); 
+     if(H[ind] > r){
+     res=pos_start[i]-r-C[ind]/3000;
+       exit_short(res, pos_start[i], r, i, dy, mn, yr);
+       cnt-=1;
+       };
+     };
+     if(cnt==0)
+     {  
+       pos_direction==0; check_new_c(upl, lwl, ind, at, dy, mn,yr);
+      }else{
+  
+   if(cnt<max_increase){
+  if (C[ind] < (pos_start[cnt-1]-at*sc))
+     {  
+        new_short(C[ind], ind, at,  dy, mn, yr); 
+       
+       };
+     
+     };
+    //  s=pos_stop-L[ind];
+    //   if(s>tray*at[ind]){ pos_stop-=(s-tray*at[ind]); };
+      
+    };
+   
+  }else{
+ 
+     if (pos_direction==0){ check_new_c(upl, lwl, ind, at, dy, mn,yr);  }; 
+  };
+ };
+};
+
+
+lup=HHV( Ref(H, -1),  lp );
+llw=LLV( Ref(L, -1), lp );
+ats=ATR(140);
+Re=Null;
+prev_day=dates[0]%100;
+for(i=0; i<BarCount; i++)
+ { 
+  dy= dates[i]%100;
+   mn=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+     if(prev_day!=dy){ prev_day=dy;
+      proc_trade_c( lup[i], llw[i], i, C[i]*0.005, dy, mn, yr); 
+      }else{  proc_trade(lup[i], llw[i], i, C[i]*0.005, dy, mn, yr ); };
+    
+   Re[i]=profit_sum+loss_sum;
+  
+ };
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n", loss_count, profit_count, loss_sum, profit_sum);
+Plot(Re, "Tortille_Trai", colorGreen, styleLine);
+ 

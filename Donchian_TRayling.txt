@@ -1,0 +1,195 @@
+Settings={
+Name="Donchian_Trayling",
+period=400,
+stop=3,
+scale=1,
+ line=
+{
+ {
+    Name="line1",
+   Type=TYPE_LINE,
+   Color=RGB(0,255,0)
+  },
+{
+    Name="line2",
+   Type=TYPE_LINE,
+   Color=RGB(0,255,0)
+  },
+{
+    Name="line3",
+   Type=TYPE_POINT,
+   Color=RGB(0,255,0)
+  },
+{
+    Name="line4",
+   Type=TYPE_POINT,
+   Color=RGB(0,0,255)
+  },
+{
+    Name="line5",
+   Type=TYPE_TRIANGLE_UP,
+   Color=RGB(0,255,0)
+  },
+{
+    Name="line6",
+   Type=TYPE_TRIANGLE_DOWN,
+   Color=RGB(255,0,0)
+  },
+ {
+    Name="line7",
+   Type=TYPE_TRIANGLE_UP,
+   Color=RGB(255,255,0)
+  },
+{
+    Name="line8",
+   Type=TYPE_TRIANGLE_DOWN,
+   Color=RGB(255,0,255)
+  }
+ }
+}
+
+pos={ start=0, direction=0,stop=0, art=0 }
+statistic={ loss_count=0, profit_count=0, loss_sum=0, profit_sum=0 }
+start=0
+stop_up=nil
+stop_dwn=nil
+up=nil
+dwn=nil
+tr_up=nil
+tr_dwn=nil
+st_up=nil
+st_dwn=nil
+cnt=0
+prev=0
+sen={}
+res=nil
+function new_long (lev, ind)
+    pos.direction=1
+    pos.start=lev
+    pos.stop=lev-lev*Settings.stop
+    tr_up=L(ind)
+    pos.art=lev*Settings.stop
+    stop_up=pos.stop
+   end
+
+function new_short (lev, ind)
+    pos.direction=-1
+    pos.start=lev
+    pos.stop=lev+lev*Settings.stop
+    tr_dwn=H(ind)
+    pos.art=lev*Settings.stop
+    stop_dwn=pos.stop
+   end
+
+function check_new (max, min, ind)
+  
+ 
+if T(ind).hour==10 then
+   
+  if C(ind) > max then
+     new_long(C(ind), ind)
+     return
+   end
+ 
+  if C(ind) < min then
+    new_short(C(ind), ind)
+   end
+ else
+
+  if H(ind) > max then
+     new_long(max, ind)
+     return
+   end
+ 
+  if L(ind) < min then
+    new_short(min, ind)
+   end
+ end
+end
+
+function proc_trade (mx, mn, ind)
+  
+
+ if pos.direction==1 then
+   if L(ind) < mn or L(ind) < pos.stop then
+    pos.direction=0
+    stop_up=nil
+    st_dwn=H(ind)
+    check_new(mx, mn, ind)
+   else
+    st=H(ind)-pos.stop
+    if st > pos.art*Settings.scale then
+      pos.stop=pos.stop+(st-pos.art*Settings.scale)
+      stop_up=pos.stop end
+   end
+  return
+ end
+
+if pos.direction==-1 then
+   if H(ind) > mx or H(ind) > pos.stop then
+    pos.direction=0
+    stop_dwn=nil
+  st_up=L(ind)
+    check_new(mx, mn, ind)
+   else
+    st=pos.stop-L(ind)
+    if st > pos.art*Settings.scale then
+    pos.stop=pos.stop-(st-pos.art*Settings.scale)
+   stop_dwn=pos.stop  end
+   end
+  return
+ end
+
+if pos.direction==0 then
+  check_new(mx, mn, ind)
+ end
+
+end
+
+  
+function Init() 
+
+  for i=0, 400, 1 do
+   sen[i]=0
+  end
+
+
+ 
+  return 8 end
+
+function OnCalculate(ind)
+ 
+if start==0 then
+ start=1
+ for i=0, 400, 1 do
+   sen[i]=0
+  end
+ end
+
+if ind < prev then prev=0 start=0
+  else
+if prev<ind then
+    prev=ind
+    tr_up=nil
+    tr_dwn=nil
+    st_up=nil
+    st_dwn=nil
+    max=0
+    min=1000000
+    sen[cnt]=H(ind-1)
+    sen[Settings.period+cnt]=L(ind-1)
+    cnt=cnt+1
+     if cnt==Settings.period then cnt=0 end
+
+  for i=0, Settings.period-1, 1 do
+   if sen[i] > max then max=sen[i] end
+    if sen[i+Settings.period]< min then min=sen[i+Settings.period] end
+  end
+ up=max
+ dwn=min
+end
+proc_trade(up, dwn, ind)
+end
+
+ return up, dwn, stop_up, stop_dwn, tr_up, tr_dwn, st_up, st_dwn
+ end

@@ -1,0 +1,143 @@
+
+hp=Param("Hi", 30, 1, 700, 1);
+max_increase=Param("Nmax_Increase", 2, 1, 10, 1);
+
+stop=Param("Stop", 0.005, 0, 100000, 1);
+
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+hour_cnt=10;
+cur_close=0;
+num_pos=0;
+art=0;
+procedure new_long(lev, hr, dy, mn, yr)
+  { num_pos=1;
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    art=stop*lev;
+    printf("Long =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+  };
+   
+procedure new_short (lev, hr, dy, mn,yr)
+  { num_pos=1;
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    art=stop*lev;
+    printf("Short =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+   };
+
+procedure check_new (mx, lw, ind, hr, dy, mn, yr)
+  {
+if(ind<(BarCount-1)){
+  if (H[ind] > mx )
+   {
+     
+     new_long(mx, hr, dy, mn, yr);
+   }else{
+  if (L[ind] < lw )
+    {
+   new_short(lw, hr, dy, mn, yr);
+    
+    };
+   };
+  };
+};
+
+procedure proc_trade ( upl, lwl, ind)
+  {
+
+    dy= dates[ind]%100;
+   mn=((dates[ind]-dy)%10000)/100;
+    yr=(dates[ind]-mn*100-dy)/10000+1900;
+      
+ res=0;
+ if (pos_direction==1)
+   {
+     if (pos_start < lwl OR pos_start==lwl)
+          {  cur_close=(lwl-pos_start)*num_pos; };
+    if (L[ind] <= pos_stop OR L[ind] <= lwl)
+     {
+      pos_direction=0; cur_close=0; 
+    
+       if (pos_stop > lwl){ res=-1*art*num_pos; }else{ res=(lwl-pos_start)*num_pos; };
+       
+    
+    if( res < 0 )
+       {
+
+       printf("Loss Long =%f Stop=%f NUM_POS=%f  Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, lwl), num_pos, dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit Long =%f Stop=%f Num_POs=%f Days=%f  Mont=%f Years=%f \n", res, Max( pos_stop, lwl), num_pos, dy, mn, yr);
+        profit_count=profit_count+1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+      num_pos=0;
+    if ( L[ind]<lwl  ){ new_short(lwl, hour_cnt, dy, mn, yr);  };
+  }else{ 
+  if (H[ind] > (pos_start+art) AND num_pos<max_increase)
+      {
+       profit_sum=profit_sum+art; num_pos+=1; pos_stop=pos_start; pos_start+=art;
+        printf("Ok Increase Long Pos New Start=%f  New Stop=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, dy, mn, yr);
+      };
+   };
+}else{
+
+  if (pos_direction==-1)
+   {
+      if (pos_start >= upl)
+          {  cur_close=(pos_start-upl)*num_pos; };
+          
+    if (H[ind] >= pos_stop OR H[ind] >= upl)
+     {
+             pos_direction=0; cur_close=0; 
+       if (pos_stop < upl){ res=-1*art*num_pos; }else{ res=(pos_start-upl)*num_pos; };
+     
+    
+   if( res < 0 )
+    {
+
+       printf("Loss Short =%f Stop=%f NUM_POS=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, upl), num_pos, dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit Short =%f Stop=%f NUM_POS=%f Days=%f  Mont=%f Years=%f \n", res, Min( pos_start, upl), num_pos, dy, mn, yr);
+        profit_count=profit_count+1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+      num_pos=0;
+    if ( H[ind]> upl ){ new_long(upl, hour_cnt, dy, mn, yr); };
+   }else{
+  if (L[ind]<(pos_start-art) AND num_pos<max_increase)
+     { profit_sum=profit_sum+art; num_pos+=1; pos_stop=pos_start; pos_start-=art;
+         printf("Ok Increase Short Pos New Start=%f  New Stop=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, dy, mn, yr); 
+      };
+  }; 
+  }else{
+     if (pos_direction==0){ check_new(upl, lwl, ind, hour_cnt, dy, mn,yr);  };
+  };
+ };
+};
+
+
+lup=HHV( Ref(H, -1),  hp );
+llw=LLV( Ref(L, -1), hp );
+Re=MA(Close, 12);
+for(i=0; i<BarCount; i++)
+ { 
+   proc_trade( lup[i], llw[i], i);
+   Re[i]=profit_sum+loss_sum+cur_close;
+  
+ };
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n", loss_count, profit_count, loss_sum, profit_sum);
+Plot(Re, "Donchian_WITH_INcrease", colorGreen, styleLine);
+ 

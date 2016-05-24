@@ -1,0 +1,222 @@
+ten=Param("Tenkan", 10, 1, 1000, 1);
+kij=Param("Kijun", 28, 1, 1000, 1);
+sen=Param("Senkoy", 56, 1, 1000, 1);
+delay = Param( "Delayed Line Periods", 0, 0, 1000, 1 );
+stop=Param("Stop", 0.01, 0, 100000, 1);
+offset=Param("Offset", 0, 0, 1000, 1);
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+hour_cnt=10;
+Res[0]=0;
+start=0;
+fr_mn=0;
+fr_dy=0;
+fr_yr=0;
+cur_close=0;
+profit_days=0;
+loss_days=0;
+prev_sum=0;
+procedure new_long(lev, hr, dy, mn, yr)
+  {  if (start==0) { fr_dy=dy; fr_mn=mn; fr_yr=yr; start=1; };
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    printf("Long =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+  };
+   
+procedure new_short (lev, hr, dy, mn,yr)
+  { if (start==0) { fr_dy=dy; fr_mn=mn; fr_yr=yr; start=1; };
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    printf("Short =%f Stop=%f Hours=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, hr, dy, mn, yr);
+   };
+
+procedure check_new (mx, lw,  ind, hr, dy, mn, yr)
+  {
+if(ind<(BarCount-1)){
+  if (H[ind] > mx)
+   {
+  
+     new_long(mx, hr, dy, mn, yr);
+   }else{
+  if (L[ind] < lw)
+    {
+   new_short(lw, hr, dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+procedure proc_trade (up, lw, fh, fl, ind, dy, mn, yr)
+  {
+
+    res=0;
+     upl=Max(up, fh);
+      stl=Min(lw, fl);
+ if (pos_direction==1)
+   {
+     
+     if (pos_start < lw OR pos_start==lw)
+          {  cur_close=(lw-pos_start); };
+    if (L[ind] < pos_stop OR L[ind]< lw)
+     {
+      pos_direction=0; cur_close=0;
+      if (pos_stop > lw){ res=pos_stop-pos_start; }else{ res=lw-pos_start; };
+        
+     if( res < 0 )
+       {
+          
+       printf("Loss Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, lw), dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Max( pos_stop, lw),  dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+      
+    if ( L[ind] < stl ){ new_short(stl, hour_cnt, dy, mn, yr); };
+  }; 
+}else{
+
+  if (pos_direction==-1)
+   {
+      
+     if (pos_start > up OR pos_start==up)
+          {  cur_close=(pos_start-up); };
+          
+    if (H[ind] > pos_stop OR H[ind] > up)
+     {
+      pos_direction=0; cur_close=0;
+       if (pos_stop < up){ res=pos_start-pos_stop; }else{ res=pos_start-up; };
+        
+   if( res < 0 )
+    {
+       
+       printf("Loss Short =%f Stop=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, up),  dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit Short =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Min( pos_stop, up),  dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+      
+    if ( H[ind]> upl){ new_long(upl, hour_cnt, dy, mn, yr); };
+   };
+  }else{
+      
+      
+     if (pos_direction==0){ check_new(upl, stl, ind, hour_cnt, dy, mn,yr); };
+  };
+ };
+};
+
+
+procedure close_pos (ind, dy, mn, yr)
+ {
+   
+     res=0;
+     
+       if(pos_direction==1)
+          { res=C[ind]-pos_start; 
+            }else{
+                   if(pos_direction==-1){ res=pos_start-C[ind]; };
+                  };
+       pos_direction=0; cur_close=0; 
+   if( res < 0 )
+    {
+
+       printf("Loss In Close =%f Close=%f Days=%f  Monh=%f Years=%f \n", res, C[ind],  dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit In Close =%f Close=%f Days=%f  Mont=%f Years=%f \n", res, C[ind],  dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+       nw=loss_sum+profit_sum; 
+       if(nw >= prev_sum)
+         { profit_days+=1; printf("Day =%f Month=%f Year=%f Is Profit=%f \n", dy, mn, yr, nw-prev_sum); }
+           else{ loss_days+=1; printf("Day =%f Month=%f Year=%f Is Loss=%f \n", dy, mn, yr, nw-prev_sum);  };
+            prev_sum=nw;
+    };
+    
+
+TL = ( HHV( Ref(H, -1*delay), kij ) + LLV( Ref(L, -1*delay), kij ) ) / 2;
+SL = ( HHV( Ref(H, -1*delay), ten  ) + LLV( Ref(L, -1*delay), ten ) ) / 2;
+Sp1 = ( SL + TL ) / 2;
+Sp2 = ( HHV( Ref(H, -1*delay), sen ) + LLV( Ref(L, -1*delay), sen ) ) / 2;
+
+
+
+Hn1= Ref(H, -1); 
+Hn2= Ref(H, -2); 
+Hn3= Ref(H, -3); 
+Hn4= Ref(H, -4); 
+
+Ln1= Ref(L, -1); 
+Ln2= Ref(L, -2); 
+Ln3= Ref(L, -3); 
+ln4= Ref(L, -4); 
+
+PH = Hn2 >= Hn1 AND Hn2 >= Hn3 AND Hn2>H AND Hn2>Hn4 /*AND Ln2>Ln3 AND Ln2> Ln1 */AND Hn2>Ln2;
+PL = Ln2 <= Ln1 AND Ln2 <= Ln3 AND Ln2<L AND Ln2<Ln4 /*AND Hn2<Hn3 AND Hn2<Hn1 */AND Hn2>Ln2;
+
+ 
+PH=Ref(PH,2);
+PL=Ref(PL,2); 
+
+PH[BarCount-1]= Null;
+PL[BarCount-1]= Null;
+
+PH[BarCount-2]= Null;
+PL[BarCount-2]= Null;
+
+
+
+AR=MA(Close, 9);
+oldfl=0;
+oldfh=0;
+
+prev_day=dates[0]%100;
+pmth=((dates[0]-prev_day)%10000)/100;
+psum=0;
+for(i=0; i<BarCount; i++)
+ { mx=0; mn=0;
+    dy= dates[i]%100;
+   mth=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+    
+     if (Sp1[i] > Sp2[i]){ mx=Sp1[i]; mn=Sp2[i]; }else{ mx=Sp2[i]; mn=Sp1[i]; };
+     
+    if(prev_day!= dy)
+      { 
+        
+        close_pos (i, prev_day, mth, yr);
+        if(pmth!=mth){ pmth=mth; psum=profit_sum+loss_sum; };
+         AR[i]=psum;
+          prev_day=dy;
+          if(PH[i]==1 OR H[i] > mx){ oldfh=i; };
+          if(PL[i]==1 OR L[i] < mn){ oldfl=i; };
+ 
+         continue;
+       };
+    
+   proc_trade(mx, mn, H[oldfh], L[oldfl], i, dy, mth, yr);
+   AR[i]=psum;
+   if(PH[i]==1){ oldfh=i; };
+   if(PL[i]==1){ oldfl=i; };
+ 
+ };
+ printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n Loss Days=%f Profit Days=%f\n",
+                            loss_count, profit_count, loss_sum, profit_sum, loss_days, profit_days);
+                            Plot(AR, "Bot_Fractals_INT_Month", colorGreen, styleLine );

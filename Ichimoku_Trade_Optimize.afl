@@ -1,0 +1,129 @@
+stop=Param("Stop", 0.005, 0.005, 0.01, 0.001);
+ten=Optimize("Tenkan", 10, 10, 100, 10);
+kij=Optimize("Kijun", 28, 20, 150, 10);
+sen=Optimize("Senkoy", 56, 30, 200, 10);
+
+SetOption("InitialEquity", 100000);
+SetOption("AllowSameBarExit", True);
+SetOption("ActivateStopsImmediately", True);
+SetOption("FuturesMode", True);
+PositionSize=1;//Param("Procent Of Fund To Open Positions", -20, -70, -10, 10);
+
+MarginDeposit=1;//Param("Margin Cost Of Contract", -10, -100, 100, 1);
+PointValue=Param("Cost Of Punct", 1, 0, 1000000000, 1);
+
+art=0;
+Buy=Null;
+Short=Null;
+Sell=Null;
+Cover=Null;
+TL = ( HHV( Ref(H, 0), kij ) + LLV( Ref(L, 0), kij ) ) / 2;
+SL = ( HHV( Ref(H, 0), ten  ) + LLV( Ref(L, 0), ten ) ) / 2;
+Sp1 = ( SL + TL ) / 2;
+Sp2 = ( HHV( Ref(H, 0), sen ) + LLV( Ref(L, 0), sen ) ) / 2;
+
+SetOption("InitialEquity", 100000);
+SetOption("AllowSameBarExit", True);
+SetOption("ActivateStopsImmediately", True);
+SetOption("FuturesMode", True);
+stp_s=Null;
+stp_l=Null;
+
+
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+
+
+procedure new_long(lev, i)
+  { 
+    pos_direction=1;
+    Buy[i]=1; BuyPrice[i]=lev;
+     pos_stop=stp_l[i]=lev-C[i]*stop;
+   
+  };
+   
+procedure new_short (lev, i)
+  { 
+    pos_direction=-1;
+    Short[i]=1; ShortPrice[i]=lev;
+     pos_stop=stp_s[i]=lev+C[i]*stop;
+    
+   };
+procedure check_new (ten, kij, s1, s2, ind)
+  { 
+if(ind<(BarCount-1)){ 
+   
+    
+     if(kij<=ten  AND C[ind] > s1 ){   new_long( C[ind], ind); 
+        }else{ 
+                if(kij>=ten  AND C[ind]<s2 ){   new_short(C[ind], ind); }
+              };
+           };
+        };
+
+
+procedure proc_trade (ten, kij, s1, s2, ind)
+  {
+
+  
+ if (pos_direction==1)
+   {  
+   
+   
+    if (L[ind]<s2 OR L[ind]<pos_stop OR kij>ten){
+       pos_direction=0; 
+       
+        SellPrice[ind]=Max(pos_stop, s2);
+        
+       if (kij>ten AND L[ind]>SellPrice[ind]){ SellPrice[ind]=C[ind]; };
+       Sell[ind]=1;
+   check_new(ten, kij, s1, s2, ind); 
+  }; 
+}else{
+
+  if (pos_direction==-1)
+   {
+      
+    if (H[ind] > pos_stop OR H[ind] > s1 OR kij<ten)
+     {
+      pos_direction=0;
+      CoverPrice[ind]=Min(pos_stop, s1);
+      if (kij<ten AND H[ind]<CoverPrice[ind]){ CoverPrice[ind]=C[ind]; };
+      Cover[ind]=1;
+     check_new(ten, kij, s1, s2, ind);  
+    
+   };
+  }else{
+      
+      
+     if (pos_direction==0){ check_new(ten, kij, s1, s2, ind); };
+  };
+ };
+};
+
+for(i=0; i<BarCount; i++)
+ { 
+   proc_trade(SL[i], TL[i],  Max(Sp1[i], Sp2[i]), Min(Sp1[i], Sp2[i]),  i);
+  
+  
+ };
+Buy = ExRem( Buy, Sell );
+Sell = ExRem( Sell, Buy );
+Short = ExRem( Short, Cover );
+Cover = ExRem( Cover, Short );
+
+
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+
+Plot( SL, "SL", colorRed, styleThick | styleNoLabel );
+Plot( TL, "TL", colorGreen, styleThick | styleNoLabel );
+color = IIf( Sp1 > Sp2, ParamColor( "Span1 Color", ColorRGB( 0, 255, 0 ) ), ParamColor( "Span2 Color", ColorRGB( 255, 104, 32 ) ) );
+PlotOHLC ( Sp1, Sp1, Sp2, Sp2, "Cloud", Color, styleCloud | styleNoLabel, Null, Null, 0, -2 );
+PlotShapes( Buy*shapeUpArrow, colorBrightGreen, 0, Low );
+PlotShapes( Short*shapeDownArrow, colorRed, 0, High ); 
+PlotShapes( Sell*shapeUpArrow, colorYellow, 0, Low );
+PlotShapes( Cover*shapeDownArrow, colorBlue, 0, High ); 
+Plot( stp_l, "Chand1", ParamColor( "Chand Color:", colorGreen ), ParamStyle( "Chand Style", styleDashed ) );
+Plot( stp_s, "Chand", ParamColor( "Chand Color:", colorBlue ), ParamStyle( "Chand Style", styleDashed ) );
+

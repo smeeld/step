@@ -1,0 +1,68 @@
+Settings={
+Name="Pivots",
+scale1=50,
+scale2=50,
+line={
+{
+Name="Line_up",
+Color=RGB(0, 255,0),
+Type=TYPE_LINE,
+Width=1
+  },
+{
+Name="Line_low",
+Color=RGB(0,255,0),
+Type=TYPE_LINE,
+Width=1
+  
+  }
+ }
+}
+
+prev=0
+
+res_up=nil
+res_lw=nil
+
+cnt_up=0
+array={}
+array_up={}
+prev_day=0
+start=0
+function Init()
+ for i=0, 100, 1 do
+    array[i]=0
+  end
+
+  for i=0, 100, 1 do
+    array_up[i]=0
+  end
+return 2
+end
+
+function OnCalculate(ind)
+ 
+
+if prev>ind then prev=0  end
+if ind > prev then
+ prev=ind
+if prev_day~=T(ind).day then
+ mx=0 mn=1000000 
+ for n=0,cnt_up-1, 1 do
+   if mx<array[n] then mx=array[n] end
+   if mn>array_up[n] then mn=array_up[n] end
+ end
+cnt_up=0
+prev_day=T(ind).day
+res_up=C(ind-1)+(mx-mn)*(Settings.scale1/100)
+res_lw=C(ind-1)-(mx-mn)*(Settings.scale2/100)
+end
+
+   array[cnt_up]=H(ind)
+   array_up[cnt_up]=L(ind)
+  cnt_up=cnt_up+1
+
+  end
+
+  return res_up, res_lw
+end

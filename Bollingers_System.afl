@@ -1,0 +1,162 @@
+
+
+Periods =Param("Periods", 14, 5, 300, 1 );
+Width = Param("Width", 2, 2, 2, 1 );
+scale=Param("Scale", 2, 2, 10, 1);
+//RoundLotSize=/Param("Lot Size", 1, 1, 1000000, 1);
+stop=Param("Stop", 0.01, 0.005, 0.01, 0.001);
+SetOption("InitialEquity", 100000);
+SetOption("AllowSameBarExit", False);
+SetOption("ActivateStopsImmediately", True);
+SetOption("FuturesMode", True);
+
+
+MarginDeposit=1;// Param("Margin Cost Of Contract", -10, -100, 100, 1);
+PositionSize=Param("Num Contracts ", 1, 1, 100, 1);//Param("Procent Of Fund To Open Positions", -20, -100, 0, 1);
+PointValue=Param("Cost Of Punct", 1, 0, 1000000000, 1);
+art=0;
+cv=MA(C, Periods);
+lup= BBandTop( C, Periods, Width );
+llw= BBandBot( C, Periods, Width );
+pos_direction=0;
+pos_stop=0;
+Short=null;
+Buy=null;
+Sell=Null;
+Cover=Null;
+ShortPrice=Null;
+BuyPrice=Null;
+SellPrice=Null;
+CoverPrice=Null;
+/*
+BuyStop=Max(H-C*scale, BuyPrice-C*stop);
+ShortStop=Min(L+C*scale, ShortPrice+C*stop);
+
+Cover=H > Min(ShortStop, lup);
+Sell=L < Max(BuyStop, llw);
+SellPrice=Max(BuyStop-C/3000, llw-C/3000);
+CoverPrice=Min(ShortStop+C/3000, lup+C/3000);
+/*stp_s=Null;
+stp_l=Null;*/
+pos_direction=0;
+pos_stop=0;
+
+
+ 
+procedure new_long(lev, i)
+  { 
+    pos_direction=1;
+    Buy[i]=1; BuyPrice[i]=lev;
+     pos_stop=SellPrice[i]=lev-lev*stop;
+    art=lev*stop;
+  };
+   
+procedure new_short (lev, i)
+  { 
+    pos_direction=-1;
+    Short[i]=1; ShortPrice[i]=lev;
+     pos_stop=CoverPrice[i]=lev+lev*stop;
+     art=lev*stop;
+   
+   };
+
+procedure check_new (mx, lw,  ind)
+  {
+if(ind<(BarCount-1)){
+  if (C[ind] > mx )
+   {
+  
+    new_long(C[ind], ind);
+   }else{
+  if (C[ind] < lw )
+    {
+  new_short(C[ind], ind);
+     
+    };
+   };
+  };
+};
+
+procedure proc_trade (up, lw, ind)
+  {
+
+    
+    if (pos_direction==1)
+   {
+     
+     mx=Max(pos_stop, lw);
+    if (L[ind] < mx)
+  
+     {
+      pos_direction=0;
+      SellPrice[ind]=mx-C[ind]/3000;
+       Sell[ind]=1; 
+        
+      if ( C[ind] < lw ){ new_short(C[ind], ind); }; 
+       
+      }else{
+  
+       st=H[ind]-pos_stop; 
+        if(st > art*scale){
+       pos_stop+=(st-art*scale); 
+       };
+       
+       SellPrice[ind]=pos_stop;
+      
+    };
+ 
+}else{
+
+  if (pos_direction==-1)
+   {
+     mn=Min(pos_stop, up); 
+    if (H[ind] > mn)
+    
+     {
+      pos_direction=0;
+      CoverPrice[ind]=mn+C[ind]/3000;
+      
+      Cover[ind]=1; 
+     
+    if ( C[ind]> up ){ new_long(C[ind], ind); };
+   }else{
+     
+     st=pos_stop-L[ind];
+      if(st > art*scale)
+      {
+       
+       pos_stop-=(st-art*scale); 
+       };
+       CoverPrice[ind]=pos_stop; 
+    };
+  }else{
+      
+      
+     if (pos_direction==0){ check_new(up, lw, ind); };
+  };
+ };
+};
+
+for(i=0; i<BarCount; i++){
+ 
+    proc_trade(lup[i], llw[i], i);
+       };
+
+
+Buy = ExRem( Buy, Sell );
+Sell = ExRem( Sell, Buy );
+Short = ExRem( Short, Cover );
+Cover = ExRem( Cover, Short );
+
+
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+Plot(lup, "UP11", colorGreen, styleLine );
+Plot(llw, "UP12", colorGreen, styleLine );
+//Plot(cv, "MA", colorGreen, styleLine );
+PlotShapes( Buy*shapeUpArrow, colorBrightGreen, 0, Low );
+PlotShapes( Short*shapeDownArrow, colorRed, 0, High ); 
+Plot( SellPrice, "Chand1", ParamColor( "Chand Color:", colorGreen ), ParamStyle( "Chand Style", styleDashed ) );
+Plot( CoverPrice, "Chand2", ParamColor( "Chand Color1:", colorBlue ), ParamStyle( "Chand Style", styleDashed ) );
+PlotShapes( Sell*shapeUpArrow, colorYellow, 0, Low );
+PlotShapes( Cover*shapeDownArrow, colorBlue, 0, High ); 
+

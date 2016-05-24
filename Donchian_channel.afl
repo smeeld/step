@@ -1,0 +1,12 @@
+
+period1 = Param( "UP", 40, 1, 1000, 1 );
+period2 = Param( "UP_LW", 20, 1, 1000, 1 );
+UPL=HHV( Ref(H, -1),  period1 );
+LWL=LLV( Ref(L, -1), period1 );
+UP=HHV( Ref(H, -1),  period2 );
+LW=LLV( Ref(L, -1), period2 );
+Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
+Plot(UPL, "UP11", colorGreen, styleLine );
+Plot(LWL, "UP12", colorGreen, styleLine );
+Plot(UP, "UP22", colorBlue, styleLine );
+Plot(LW, "UP2", colorBlue, styleLine );

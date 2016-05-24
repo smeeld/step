@@ -1,0 +1,6 @@
+period = Param( "Periods, 14, 1, 200, 1 );
+seller=H-C;
+buyers=C-L;
+
+Plot(EMA(seller, period), "Sellers", colorBlue, styleLine );
+Plot(EMA(buyers, period), "Buyers", colorBuyers, styleLine );

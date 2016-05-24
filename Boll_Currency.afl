@@ -1,0 +1,140 @@
+Period1 = Param("Period1", 30, 2, 500, 1 );
+scale=Param("Scale", 2, 2, 10, 1);
+stop=Param("Stop", 0.01, 0, 100000, 1);
+cv=MA(C, Period1);
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+art=0;
+cur_close=0;
+procedure new_long(lev,  dy, mn, yr)
+  {
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    art=lev*stop;
+    printf("Long =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop,  dy, mn, yr);
+  };
+   
+procedure new_short (lev,  dy, mn,yr)
+  {
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    art=lev*stop;
+    printf("Short =%f Stop=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop,  dy, mn, yr);
+   };
+
+procedure check_new (mx, lw, ind,  dy, mn, yr)
+  {
+if(ind<(BarCount-1)){
+  if (C[ind] > mx)
+   {
+  
+     new_long(C[ind],  dy, mn, yr);
+   }else{
+  if (C[ind] < lw)
+    {
+   new_short(C[ind],  dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+procedure proc_trade (up, lw, cv, ind)
+  {
+
+    dy= dates[ind]%100;
+   mn=((dates[ind]-dy)%10000)/100;
+    yr=(dates[ind]-mn*100-dy)/10000+1900;
+      
+ 
+ if (pos_direction==1)
+   {
+     if (pos_start <= cv )
+          {  cur_close=(cv-pos_start); };
+    if (L[ind] < pos_stop OR C[ind]< cv)
+     {
+      pos_direction=0; cur_close=0;
+    if(L[ind]<pos_stop ){
+       res=pos_stop-pos_start-C[ind]/3000; }else{
+       if(C[ind]<cv ){ res=C[ind]-pos_start; };
+       };
+    
+     if( res < 0 )
+       {
+
+       printf("Loss Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, lw),  dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum=loss_sum+res;
+      }else{
+       printf("Profit Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Max( pos_start, lw),  dy, mn, yr);
+        profit_count=profit_count+1;
+        profit_sum=profit_sum+res;
+       };
+
+   check_new(up, lw, ind,  dy, mn,yr);
+  }else{ 
+  
+     st=H[ind]-pos_stop;  if(st > art*scale){
+      printf("Move Long Stop From %f To %f High=%f ART=%f Day=%f Mnth=%f Year=%f \n", pos_stop, pos_stop+(st-art*scale), H[ind], art, dy, mn, yr);
+       pos_stop+=(st-art*scale); }; };
+}else{
+
+  if (pos_direction==-1)
+   {
+      if (pos_start >=cv)
+          {  cur_close=(pos_start-cv); };
+          
+    if (H[ind] > pos_stop OR C[ind] > cv )
+     {
+             pos_direction=0; cur_close=0;
+       if(H[ind]>pos_stop ){
+       res=pos_start-pos_stop-C[ind]/3000; }else{
+       if(C[ind]>cv ){ res=pos_start-C[ind]; };
+       };
+    
+   if( res < 0 )
+    {
+
+       printf("Loss Short =%f Stop=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, up), dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum=loss_sum+res;
+      }else{
+       printf("Profit Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Min( pos_start, up),  dy, mn, yr);
+        profit_count=profit_count+1;
+        profit_sum=profit_sum+res;
+       };
+
+       check_new(up, lw, ind,  dy, mn,yr);
+   }else{
+      
+      st=pos_stop-L[ind];
+       if(st > art*scale){
+     printf("Move Short Stop From %f To %f Low=%f  ART=%f Day=%f Mnth=%f Year=%f \n", pos_stop, pos_stop-(st-art*scale), L[ind], art, dy, mn, yr);
+       pos_stop-=(st-art*scale); };  };
+  }else{
+     if (pos_direction==0){ check_new(up, lw, ind,  dy, mn,yr); };
+  };
+ };
+};
+
+B1=BBandTop( C, Period1 ); 
+B2= BBandBot( C, Period1 ); 
+MB=MA(C, Period1);
+Re=MA(Close, 12);
+for(i=0; i<BarCount; i++)
+ { 
+   proc_trade(B1[i], B2[i], MB[i], i);
+   Re[i]=profit_sum+loss_sum+cur_close;
+ 
+ };
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n", loss_count, profit_count, loss_sum, profit_sum);
+Plot(Re, "Ball_Currency", colorGreen, styleLine);
+ 

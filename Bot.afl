@@ -1,0 +1,123 @@
+ten_period=Param("Tenkan", 10, 1, 1000, 1);
+kij_period=Param("Kijun", 28, 1, 1000, 1);
+sen_period=Param("Senkoy", 56, 1, 1000, 1);
+delay = Param( "Delayed Line Periods", 12, 0, 250, 1 );
+stop=Param("Stop", 0.01, 0, 100000, 1);
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+start=0;
+cur_close=0;
+procedure new_long(lev, dy, mn, yr)
+  { 
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    printf("Long =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, dy, mn, yr);
+  };
+   
+procedure new_short (lev, dy, mn,yr)
+  { 
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    printf("Short =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop, dy, mn, yr);
+   };
+
+procedure check_new (ten, kij, s1, s2, ind, dy, mn,yr )
+  { 
+if(ind<(BarCount-1)){ 
+   
+   
+     if(kij<=ten  AND C[ind] > s1 ){   new_long( C[ind],  dy, mn, yr); 
+        }else{ 
+                if(kij>=ten  AND C[ind]<s2 ){   new_short(C[ind], dy, mn, yr); }
+             };
+     
+    };
+ };
+
+procedure proc_trade (ten, kij, up, lw, ind)
+  {
+
+    dy= dates[ind]%100;
+   mn=((dates[ind]-dy)%10000)/100;
+    yr=(dates[ind]-mn*100-dy)/10000+1900;
+    res=0;
+ if (pos_direction==1)
+   {
+     if (pos_start < lw OR pos_start==lw)
+          {  cur_close=(lw-pos_start); };
+    if (L[ind] < pos_stop OR L[ind]< lw OR kij>ten)
+     {
+      pos_direction=0; cur_close=0;
+      
+        res=Max(pos_stop, lw)-pos_start;
+        if(kij>ten){ res=C[ind]-pos_start; };
+     if( res < 0 )
+       {
+         
+       printf("Loss Long =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, lw), dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit Long =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", res, Max( pos_stop, lw), dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+
+    check_new(ten, kij, up, lw, ind, dy, mn, yr);
+  }; 
+}else{
+
+  if (pos_direction==-1)
+   {
+  
+     if (pos_start > up OR pos_start==up)
+          {  cur_close=(pos_start-up); };
+          
+    if (H[ind] > pos_stop OR H[ind] > up OR kij<ten)
+     {
+      pos_direction=0; cur_close=0;
+       res=min(pos_stop, up)-pos_start;
+        if(kij<ten){ res=pos_start-C[ind]; };
+        
+   if( res < 0 )
+    {
+       
+       printf("Loss Short =%f Stop=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, up), dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=(res-(C[ind]/3000));
+      }else{
+       printf("Profit Short =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", res, Min( pos_stop, up), dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=(res-(C[ind]/3000));
+       };
+
+    check_new(ten, kij, up, lw, ind, dy, mn, yr);
+   };
+  }else{
+     if (pos_direction==0){ check_new(ten, kij, up, lw, ind, dy, mn,yr); };
+  };
+ };
+};
+
+TL = ( HHV( Ref(H, -1*delay), ten_period ) + LLV( Ref(L, -1*delay), ten_period ) ) / 2;
+SL = ( HHV( Ref(H, -1*delay), kij_period ) + LLV( Ref(L, -1*delay), kij_period ) ) / 2;
+Sp1 = ( SL + TL ) / 2;
+Sp2 = ( HHV( Ref(H, -1*delay), sen_period) + LLV( Ref(L, -1*delay), sen_period) ) / 2;
+AR=MA(Close, 9);
+for(i=0; i<BarCount; i++)
+ { 
+   proc_trade(TL[i], SL[i], Max(Sp1[i], Sp2[i]), Min(Sp1[i], Sp2[i]), i);
+   AR[i]=profit_sum+loss_sum+cur_close;
+  
+ };
+ 
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n", loss_count, profit_count, loss_sum, profit_sum);
+Plot(AR, "Bot", colorGreen, styleLine );

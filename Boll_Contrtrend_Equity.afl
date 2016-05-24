@@ -1,0 +1,168 @@
+
+Period1 = Param("Period1", 30, 2, 300, 1 );
+wi=Param("Width", 3, 1, 4, 1);
+stop=Param("Stop", 0.01, 0.003, 0.01, 1);
+
+dates=datenum();
+pos_start=0;
+pos_direction=0;
+pos_stop=0;
+loss_count=0;
+profit_count=0;
+loss_sum=0;
+profit_sum=0;
+profit_days=0;
+loss_days=0;
+prev_sum=0;
+cur_close=0;
+B1=BBandTop( C, Period1, wi ); 
+B2= BBandBot( C, Period1, wi ); 
+cv=MA(C, Period1);
+
+procedure new_long(lev,  dy, mn, yr)
+  {
+    pos_direction=1;
+    pos_start=lev;
+    pos_stop=lev-stop*lev;
+    printf("Long =%f Stop=%f  Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop,  dy, mn, yr);
+  };
+   
+procedure new_short (lev,  dy, mn,yr)
+  {
+    pos_direction=-1;
+    pos_start=lev;
+    pos_stop=lev+stop*lev;
+    printf("Short =%f Stop=%f Days=%f  Mont=%f Years=%f \n", pos_start, pos_stop,  dy, mn, yr);
+   };
+
+procedure check_new (mx, lw, ind,  dy, mn, yr)
+  {
+if(ind<(BarCount-1)){
+  if (H[ind] > mx)
+   {
+  
+     new_short(C[ind],  dy, mn, yr);
+   }else{
+  if (L[ind] < lw)
+    {
+   new_long(C[ind],  dy, mn, yr);
+     
+    };
+   };
+  };
+};
+
+procedure proc_trade (up, lw,  ind, dy, mn, yr)
+  {
+
+   res=0;
+ 
+ if (pos_direction==1)
+   {
+    
+    if ( C[ind]> cv[ind] OR L[ind]<pos_stop)
+     {
+      pos_direction=0; res=0;
+   if(L[ind]<pos_stop){ res=pos_stop-pos_start; }else{ res=C[ind]-pos_start; };
+      
+    
+     if( res < 0 )
+       {
+
+       printf("Loss Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Max(pos_stop, C[ind]),  dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum=loss_sum+res;
+      }else{
+       printf("Profit Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Max( pos_start, C[ind]),  dy, mn, yr);
+        profit_count=profit_count+1;
+        profit_sum=profit_sum+res;
+       };
+
+     check_new(up, lw, ind,  dy, mn,yr);
+  }; 
+}else{
+
+  if (pos_direction==-1)
+   {
+      
+    if ( C[ind] < cv[ind] OR H[ind]>pos_stop )
+     {
+        pos_direction=0; res=0;
+      
+        if(H[ind]>pos_stop){ res=pos_start-pos_stop; }else{ res=pos_start-C[ind]; };
+    
+   if( res < 0 )
+    {
+
+       printf("Loss Short =%f Stop=%f Days=%f  Monh=%f Years=%f \n", res, Min(pos_stop, up), dy, mn, yr);
+        loss_count=loss_count+1;
+        loss_sum=loss_sum+res;
+      }else{
+       printf("Profit Long =%f Stop=%f Days=%f  Mont=%f Years=%f \n", res, Min( pos_start, up),  dy, mn, yr);
+        profit_count=profit_count+1;
+        profit_sum=profit_sum+res;
+       };
+
+     check_new(up, lw, ind,  dy, mn,yr);
+   };
+  }else{
+     if (pos_direction==0){ check_new(up, lw, ind,  dy, mn,yr); };
+  };
+ };
+};
+
+procedure close_pos (ind, dy, mn, yr)
+ {
+   
+     res=0;
+       if(pos_direction==1)
+          { res=C[ind]-pos_start; 
+            }else{
+                   if(pos_direction==-1){ res=pos_start-C[ind]; };
+                  };
+       pos_direction=0; cur_close=0; 
+   if( res < 0 )
+    {
+
+       printf("Loss In Close =%f Close=%f Days=%f  Monh=%f Years=%f \n", res, C[ind],  dy, mn, yr);
+        loss_count+=1;
+        loss_sum+=res;
+      }else{
+       printf("Profit In Close =%f Close=%f Days=%f  Mont=%f Years=%f \n", res, C[ind],  dy, mn, yr);
+        profit_count+=1;
+        profit_sum+=res;
+       };
+       
+       nw=loss_sum+profit_sum; 
+       if(nw >= prev_sum)
+         { profit_days+=1; printf("Day =%f Month=%f Year=%f Is Profit=%f \n", dy, mn, yr, nw-prev_sum); }
+           else{ loss_days+=1; printf("Day =%f Month=%f Year=%f Is Loss=%f \n", dy, mn, yr, nw-prev_sum);  };
+            prev_sum=nw;
+    };
+    
+
+
+Re=Null;
+prev_day=dates[0]%100;
+for(i=0; i<BarCount; i++)
+ { mx=0; mn=0;
+    dy= dates[i]%100;
+   mn=((dates[i]-dy)%10000)/100;
+    yr=(dates[i]-mn*100-dy)/10000+1900;
+   /* if(prev_day!= dy)
+    /  { 
+        
+        close_pos (i-1, prev_day, mn, yr);
+          
+          prev_day=dy;  
+         
+       };
+ */
+   proc_trade(B1[i], B2[i], i, dy, mn, yr);
+   Re[i]=profit_sum+loss_sum+cur_close;
+  
+ };
+
+printf("Ok Loss Amount=%f Prof Amount=%f Loss Sum=%f Profit Sum=%f\n Loss Days=%f Profit Days=%f\n",
+                            loss_count, profit_count, loss_sum, profit_sum, loss_days, profit_days);
+Plot(Re, "BOll_Contrtrend", colorGreen, styleLine);
