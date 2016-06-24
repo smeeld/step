@@ -1,6 +1,0 @@
-m1=Param("MA1", 70, 1, 1000, 1);
-m2=Param("MA2", 14, 1, 1000, 1);
-
-Plot(EMA(C, m1), "MA1", colorBlue, styleLine );
-Plot(EMA(C, m2), "MA2", colorGreen, styleLine );
-Plot( C, "Close", colorDefault, styleNoTitle | GetPriceStyle() );
